@@ -1,0 +1,1684 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Event Stock Radar</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7f4;
+      --panel: #ffffff;
+      --panel-soft: #eef4ef;
+      --ink: #141c18;
+      --muted: #657069;
+      --line: #d9e0d8;
+      --green: #1d6b45;
+      --green-2: #2f8a59;
+      --blue: #235d8d;
+      --red: #aa423c;
+      --amber: #a66c13;
+      --violet: #64528f;
+      --shadow: 0 18px 42px rgba(29, 43, 34, .10);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.75), rgba(245,247,244,.96)),
+        linear-gradient(90deg, rgba(29,107,69,.06) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(29,107,69,.05) 1px, transparent 1px);
+      background-size: auto, 72px 72px, 72px 72px;
+      color: var(--ink);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--ink);
+      padding: 0 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: border-color .16s ease, transform .16s ease, background .16s ease;
+    }
+
+    button:hover {
+      border-color: #aab6ab;
+      transform: translateY(-1px);
+    }
+
+    button.primary {
+      background: var(--green);
+      border-color: var(--green);
+      color: white;
+    }
+
+    button.warning {
+      color: var(--red);
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    input,
+    select {
+      min-height: 40px;
+      padding: 0 11px;
+    }
+
+    textarea {
+      min-height: 96px;
+      padding: 10px 11px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    input[type="range"] {
+      accent-color: var(--green);
+      padding: 0;
+    }
+
+    .app {
+      width: min(1540px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 22px 0 34px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      font-size: clamp(30px, 4vw, 52px);
+      line-height: 1;
+    }
+
+    h2 {
+      font-size: 17px;
+    }
+
+    h3 {
+      font-size: 15px;
+    }
+
+    .subhead {
+      margin-top: 10px;
+      max-width: 830px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 15px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 380px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .side {
+      position: sticky;
+      top: 16px;
+    }
+
+    .panel {
+      background: rgba(255,255,255,.9);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .section {
+      padding: 15px;
+    }
+
+    .section + .section {
+      border-top: 1px solid var(--line);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .inline-grid {
+      display: grid;
+      grid-template-columns: 1fr 92px;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .slider-grid {
+      display: grid;
+      grid-template-columns: 1fr 44px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pill {
+      min-height: 30px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      border-radius: 999px;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 850;
+      padding: 5px 9px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+
+    .pill.red {
+      color: var(--red);
+      background: #faecea;
+    }
+
+    .pill.amber {
+      color: var(--amber);
+      background: #fbf2df;
+    }
+
+    .pill.blue {
+      color: var(--blue);
+      background: #eaf2f8;
+    }
+
+    .pill.violet {
+      color: var(--violet);
+      background: #f0eef7;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .overview {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr);
+      gap: 16px;
+    }
+
+    .thesis {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      background: linear-gradient(135deg, #f7fbf4, #fff);
+    }
+
+    .headline-row {
+      display: flex;
+      gap: 10px;
+      align-items: start;
+      justify-content: space-between;
+    }
+
+    .score-ring {
+      width: 92px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(var(--green) calc(var(--score) * 1%), #d6ded5 0);
+      flex: 0 0 auto;
+      position: relative;
+      color: #fff;
+      font-size: 25px;
+      font-weight: 950;
+    }
+
+    .score-ring:before {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border-radius: inherit;
+      background: var(--green);
+    }
+
+    .score-ring span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      min-height: 88px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 12px;
+      display: grid;
+      align-content: space-between;
+      gap: 8px;
+    }
+
+    .stat small {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stat strong {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .chart-panel {
+      min-height: 306px;
+      background: #14231a;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      background: #edf3ec;
+      border-radius: var(--radius);
+    }
+
+    .tab {
+      border: 0;
+      background: transparent;
+      min-height: 34px;
+      font-size: 13px;
+      padding: 0 8px;
+    }
+
+    .tab.active {
+      background: #fff;
+      color: var(--green);
+      box-shadow: 0 2px 9px rgba(27, 42, 32, .08);
+      font-weight: 850;
+    }
+
+    .rank-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stock-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 13px;
+      min-height: 250px;
+      display: grid;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .stock-card.selected {
+      outline: 2px solid var(--green);
+      border-color: var(--green);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .ticker {
+      font-size: 22px;
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    .company {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .scorebar {
+      height: 10px;
+      border-radius: 999px;
+      background: #e2e8df;
+      overflow: hidden;
+    }
+
+    .scorebar span {
+      display: block;
+      width: var(--w);
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--green-2));
+    }
+
+    .reason-list {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.38;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 410px;
+      gap: 16px;
+    }
+
+    .split-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .metric {
+      display: grid;
+      grid-template-columns: 122px 1fr 44px;
+      gap: 9px;
+      align-items: center;
+      font-size: 13px;
+      min-height: 32px;
+    }
+
+    .track {
+      height: 8px;
+      background: #e1e8df;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .track span {
+      display: block;
+      height: 100%;
+      width: var(--w);
+      border-radius: inherit;
+      background: var(--c);
+    }
+
+    .table-wrap {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 840px;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: right;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      background: inherit;
+    }
+
+    th {
+      color: var(--muted);
+      background: #f3f6f1;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-size: 12px;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .up { color: var(--green); font-weight: 850; }
+    .down { color: var(--red); font-weight: 850; }
+
+    .article-list {
+      display: grid;
+      gap: 10px;
+      max-height: 520px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .article {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 11px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .article a {
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .article a:hover {
+      color: var(--green);
+    }
+
+    .article-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .heat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .heat {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      min-height: 116px;
+    }
+
+    .heat strong {
+      font-size: 24px;
+    }
+
+    .notes {
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 12px;
+      margin-top: 14px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 1220px) {
+      .shell,
+      .overview,
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        position: static;
+      }
+
+      .rank-grid,
+      .heat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100% - 20px, 1540px);
+        padding-top: 14px;
+      }
+
+      header {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        justify-content: stretch;
+      }
+
+      .toolbar button {
+        flex: 1;
+      }
+
+      .stats,
+      .rank-grid,
+      .heat-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .tabs {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .headline-row {
+        display: grid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>Event Stock Radar</h1>
+        <p class="subhead">A personal current-affairs scanner that ranks watchlist stocks by news catalysts, quote momentum, sector exposure, and risk fit.</p>
+      </div>
+      <div class="toolbar">
+        <button id="demoBtn" title="Load demo event set">Demo Data</button>
+        <button id="saveBtn" title="Save settings">Save</button>
+        <button id="refreshBtn" class="primary" title="Fetch live news and quotes">Refresh Live</button>
+      </div>
+    </header>
+
+    <div class="shell">
+      <aside class="side stack">
+        <section class="panel">
+          <div class="section">
+            <div class="section-title">
+              <h2>Personal Setup</h2>
+              <span class="pill" id="modePill">Demo</span>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <span>Watchlist symbols</span>
+                <textarea id="symbolsInput" spellcheck="false">NVDA, MSFT, AAPL, AMZN, XOM, LMT, JPM, UNH, TSLA</textarea>
+              </div>
+              <div class="inline-grid">
+                <div class="field">
+                  <span>Add ticker</span>
+                  <input id="addSymbolInput" type="text" placeholder="Example: AMD" aria-label="Add ticker">
+                </div>
+                <button id="addSymbolBtn">Add</button>
+              </div>
+              <div class="field">
+                <span>Risk appetite</span>
+                <div class="slider-grid">
+                  <input id="riskInput" type="range" min="1" max="10" value="6" aria-label="Risk appetite">
+                  <span class="pill" id="riskLabel">6</span>
+                </div>
+              </div>
+              <div class="field">
+                <span>Time horizon</span>
+                <select id="horizonInput" aria-label="Time horizon">
+                  <option value="swing">Days to weeks</option>
+                  <option value="position" selected>1 to 6 months</option>
+                  <option value="compounder">1 year plus</option>
+                </select>
+              </div>
+              <div class="field">
+                <span>Data source</span>
+                <select id="sourceInput" aria-label="Data source">
+                  <option value="hybrid" selected>GDELT news + Finnhub if key exists</option>
+                  <option value="gdelt">GDELT news only</option>
+                  <option value="demo">Demo/offline mode</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-title">
+              <h2>API Keys</h2>
+              <span class="pill blue">Local only</span>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <span>Finnhub token</span>
+                <input id="finnhubKeyInput" type="password" placeholder="Optional: quote and company news" aria-label="Finnhub token">
+              </div>
+              <p class="status">Keys are stored in this browser's local storage. Finnhub adds quotes and company-specific news; GDELT provides no-key global current-affairs coverage.</p>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-title">
+              <h2>Scoring Weights</h2>
+              <span class="pill" id="weightTotal">100</span>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <span>Current affairs</span>
+                <div class="slider-grid">
+                  <input class="weightInput" data-key="event" type="range" min="0" max="50" value="30" aria-label="Current affairs weight">
+                  <span class="pill" id="eventWeight">30</span>
+                </div>
+              </div>
+              <div class="field">
+                <span>News sentiment</span>
+                <div class="slider-grid">
+                  <input class="weightInput" data-key="sentiment" type="range" min="0" max="50" value="22" aria-label="News sentiment weight">
+                  <span class="pill" id="sentimentWeight">22</span>
+                </div>
+              </div>
+              <div class="field">
+                <span>Price momentum</span>
+                <div class="slider-grid">
+                  <input class="weightInput" data-key="momentum" type="range" min="0" max="50" value="20" aria-label="Price momentum weight">
+                  <span class="pill" id="momentumWeight">20</span>
+                </div>
+              </div>
+              <div class="field">
+                <span>Quality fit</span>
+                <div class="slider-grid">
+                  <input class="weightInput" data-key="quality" type="range" min="0" max="50" value="16" aria-label="Quality fit weight">
+                  <span class="pill" id="qualityWeight">16</span>
+                </div>
+              </div>
+              <div class="field">
+                <span>Risk control</span>
+                <div class="slider-grid">
+                  <input class="weightInput" data-key="risk" type="range" min="0" max="50" value="12" aria-label="Risk control weight">
+                  <span class="pill" id="riskWeight">12</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section">
+            <div class="section-title">
+              <h2>Run Status</h2>
+              <span class="pill" id="freshnessPill">Ready</span>
+            </div>
+            <p class="status" id="statusText">Load demo data or refresh live data to rank stocks.</p>
+          </div>
+        </section>
+      </aside>
+
+      <section class="stack">
+        <section class="overview">
+          <div class="panel thesis">
+            <div class="headline-row">
+              <div>
+                <div class="status">Top signal</div>
+                <h2 id="topName">No stock selected</h2>
+                <p class="subhead" id="topThesis">Run the radar to see the strongest catalyst-backed opportunity in your watchlist.</p>
+              </div>
+              <div class="score-ring" id="topRing" style="--score:0"><span>0</span></div>
+            </div>
+            <div class="stats">
+              <div class="stat">
+                <small>Ranked symbols</small>
+                <strong id="rankedCount">0</strong>
+              </div>
+              <div class="stat">
+                <small>Articles scanned</small>
+                <strong id="articleCount">0</strong>
+              </div>
+              <div class="stat">
+                <small>Hot theme</small>
+                <strong id="hotTheme">None</strong>
+              </div>
+              <div class="stat">
+                <small>Market posture</small>
+                <strong id="marketPosture">Neutral</strong>
+              </div>
+            </div>
+          </div>
+          <div class="panel chart-panel">
+            <canvas id="radarCanvas" aria-label="Score chart"></canvas>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section">
+            <div class="section-title">
+              <h2>Ranked Opportunities</h2>
+              <div class="tabs">
+                <button class="tab active" data-view="overall">Overall</button>
+                <button class="tab" data-view="events">Events</button>
+                <button class="tab" data-view="momentum">Momentum</button>
+                <button class="tab" data-view="risk">Risk</button>
+              </div>
+            </div>
+            <div class="rank-grid" id="stockCards"></div>
+          </div>
+        </section>
+
+        <section class="detail-grid">
+          <section class="panel">
+            <div class="section">
+              <div class="section-title">
+                <h2 id="detailTitle">Signal Detail</h2>
+                <span class="pill" id="actionPill">Watch</span>
+              </div>
+              <div class="split-list" id="detailMetrics"></div>
+            </div>
+            <div class="section">
+              <div class="section-title">
+                <h2>Decision Notes</h2>
+                <span class="pill blue" id="confidencePill">Confidence</span>
+              </div>
+              <div class="reason-list" id="decisionNotes"></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section">
+              <div class="section-title">
+                <h2>Relevant News</h2>
+                <span class="pill" id="newsForPill">All</span>
+              </div>
+              <div class="article-list" id="articleList"></div>
+            </div>
+          </section>
+        </section>
+
+        <section class="panel">
+          <div class="section">
+            <div class="section-title">
+              <h2>Current Affairs Heatmap</h2>
+              <span class="pill violet">Macro scan</span>
+            </div>
+            <div class="heat-grid" id="heatGrid"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section">
+            <div class="section-title">
+              <h2>Watchlist Table</h2>
+              <button id="exportBtn">Export CSV</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Action</th>
+                    <th>Score</th>
+                    <th>Event</th>
+                    <th>Sentiment</th>
+                    <th>Momentum</th>
+                    <th>Risk</th>
+                    <th>Price</th>
+                    <th>Day</th>
+                    <th>Invalidation</th>
+                  </tr>
+                </thead>
+                <tbody id="watchTable"></tbody>
+              </table>
+            </div>
+            <p class="notes">This is an educational decision-support tool, not financial advice. It ranks catalysts and risk evidence; it does not guarantee returns. Check filings, valuation, position sizing, tax impact, and your downside plan before buying anything.</p>
+          </div>
+        </section>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const companyProfiles = {
+      NVDA: { name: "NVIDIA", sector: "Semiconductors", themes: ["ai", "chips", "datacenter"], quality: 92, volatility: 76 },
+      MSFT: { name: "Microsoft", sector: "Software and cloud", themes: ["ai", "cloud", "enterprise"], quality: 90, volatility: 44 },
+      AAPL: { name: "Apple", sector: "Consumer hardware", themes: ["consumer", "china", "devices"], quality: 86, volatility: 42 },
+      AMZN: { name: "Amazon", sector: "Cloud and ecommerce", themes: ["cloud", "consumer", "logistics"], quality: 82, volatility: 55 },
+      XOM: { name: "Exxon Mobil", sector: "Energy", themes: ["oil", "energy", "inflation"], quality: 72, volatility: 48 },
+      LMT: { name: "Lockheed Martin", sector: "Defense", themes: ["defense", "geopolitics", "aerospace"], quality: 76, volatility: 34 },
+      JPM: { name: "JPMorgan Chase", sector: "Banks", themes: ["rates", "credit", "economy"], quality: 82, volatility: 46 },
+      UNH: { name: "UnitedHealth", sector: "Healthcare", themes: ["healthcare", "regulation", "insurance"], quality: 78, volatility: 40 },
+      TSLA: { name: "Tesla", sector: "EVs and autonomy", themes: ["ev", "autonomy", "china"], quality: 62, volatility: 88 },
+      AMD: { name: "Advanced Micro Devices", sector: "Semiconductors", themes: ["ai", "chips", "datacenter"], quality: 74, volatility: 82 },
+      GOOGL: { name: "Alphabet", sector: "Digital ads and AI", themes: ["ai", "ads", "regulation"], quality: 86, volatility: 48 },
+      META: { name: "Meta Platforms", sector: "Digital ads and AI", themes: ["ai", "ads", "consumer"], quality: 84, volatility: 62 },
+      BA: { name: "Boeing", sector: "Aerospace", themes: ["aerospace", "supplychain", "regulation"], quality: 45, volatility: 82 },
+      PFE: { name: "Pfizer", sector: "Pharma", themes: ["healthcare", "drugpricing", "regulation"], quality: 58, volatility: 45 }
+    };
+
+    const macroThemes = [
+      { id: "ai", label: "AI infrastructure", query: '"artificial intelligence" OR chips OR datacenter', boosts: ["NVDA", "MSFT", "AMD", "GOOGL", "META"] },
+      { id: "rates", label: "Rates and banks", query: '"interest rates" OR "central bank" OR inflation', boosts: ["JPM", "XOM"] },
+      { id: "geopolitics", label: "Defense and geopolitics", query: 'defense OR missile OR geopolitics OR nato', boosts: ["LMT", "BA"] },
+      { id: "energy", label: "Oil and energy", query: 'oil OR opec OR energy prices OR "natural gas"', boosts: ["XOM"] },
+      { id: "consumer", label: "Consumer demand", query: 'retail sales OR consumer spending OR ecommerce', boosts: ["AMZN", "AAPL", "TSLA", "META"] },
+      { id: "regulation", label: "Regulation", query: 'antitrust OR regulation OR lawsuit OR investigation', boosts: ["GOOGL", "AAPL", "META", "UNH", "BA"] },
+      { id: "healthcare", label: "Healthcare policy", query: 'healthcare OR medicare OR drug pricing OR insurance', boosts: ["UNH", "PFE"] },
+      { id: "supplychain", label: "Supply chains", query: 'supply chain OR factory OR shipment OR production', boosts: ["AAPL", "TSLA", "BA", "AMD"] }
+    ];
+
+    const positiveWords = ["beat", "beats", "surge", "surges", "growth", "record", "approval", "upgrade", "wins", "contract", "demand", "profit", "rally", "strong", "expands", "launch", "partnership", "recovery", "raises", "optimistic"];
+    const negativeWords = ["miss", "falls", "fall", "drop", "drops", "warning", "lawsuit", "probe", "investigation", "ban", "cuts", "recall", "delay", "risk", "weak", "slump", "loss", "strike", "downgrade", "concern"];
+
+    const demoArticles = [
+      { symbol: "NVDA", title: "Cloud providers accelerate AI server orders as chip supply tightens", source: "Demo Wire", url: "#", published: "Today", theme: "ai", tone: 0.8 },
+      { symbol: "MSFT", title: "Enterprise software budgets shift toward AI copilots and cloud security", source: "Demo Wire", url: "#", published: "Today", theme: "ai", tone: 0.55 },
+      { symbol: "LMT", title: "Defense spending debate lifts focus on missile defense contracts", source: "Demo Wire", url: "#", published: "Today", theme: "geopolitics", tone: 0.62 },
+      { symbol: "XOM", title: "Oil prices rise after supply concerns and shipping disruption", source: "Demo Wire", url: "#", published: "Today", theme: "energy", tone: 0.5 },
+      { symbol: "AAPL", title: "Regulators widen app store investigation as device demand steadies", source: "Demo Wire", url: "#", published: "Yesterday", theme: "regulation", tone: -0.45 },
+      { symbol: "TSLA", title: "EV price cuts pressure margins while autonomy launch expectations rise", source: "Demo Wire", url: "#", published: "Yesterday", theme: "ev", tone: -0.18 },
+      { symbol: "JPM", title: "Bank shares hold firm as rate-cut expectations move later", source: "Demo Wire", url: "#", published: "Yesterday", theme: "rates", tone: 0.28 },
+      { symbol: "UNH", title: "Healthcare insurers face renewed policy and reimbursement scrutiny", source: "Demo Wire", url: "#", published: "Yesterday", theme: "healthcare", tone: -0.35 },
+      { symbol: "AMZN", title: "Retail sales data points to resilient consumer demand and logistics leverage", source: "Demo Wire", url: "#", published: "Today", theme: "consumer", tone: 0.42 }
+    ];
+
+    const demoQuotes = {
+      NVDA: { price: 143.2, changePct: 2.4 },
+      MSFT: { price: 512.8, changePct: 0.9 },
+      AAPL: { price: 214.4, changePct: -0.3 },
+      AMZN: { price: 188.9, changePct: 1.1 },
+      XOM: { price: 116.2, changePct: 0.8 },
+      LMT: { price: 478.3, changePct: 1.7 },
+      JPM: { price: 221.6, changePct: 0.4 },
+      UNH: { price: 512.1, changePct: -1.2 },
+      TSLA: { price: 182.7, changePct: -2.1 }
+    };
+
+    const state = {
+      ranked: [],
+      articles: [],
+      themeHeat: [],
+      quotes: {},
+      selected: null,
+      view: "overall",
+      lastRun: null
+    };
+
+    const els = {
+      symbolsInput: document.querySelector("#symbolsInput"),
+      addSymbolInput: document.querySelector("#addSymbolInput"),
+      riskInput: document.querySelector("#riskInput"),
+      riskLabel: document.querySelector("#riskLabel"),
+      horizonInput: document.querySelector("#horizonInput"),
+      sourceInput: document.querySelector("#sourceInput"),
+      finnhubKeyInput: document.querySelector("#finnhubKeyInput"),
+      modePill: document.querySelector("#modePill"),
+      statusText: document.querySelector("#statusText"),
+      freshnessPill: document.querySelector("#freshnessPill"),
+      stockCards: document.querySelector("#stockCards"),
+      topName: document.querySelector("#topName"),
+      topThesis: document.querySelector("#topThesis"),
+      topRing: document.querySelector("#topRing"),
+      rankedCount: document.querySelector("#rankedCount"),
+      articleCount: document.querySelector("#articleCount"),
+      hotTheme: document.querySelector("#hotTheme"),
+      marketPosture: document.querySelector("#marketPosture"),
+      detailTitle: document.querySelector("#detailTitle"),
+      actionPill: document.querySelector("#actionPill"),
+      confidencePill: document.querySelector("#confidencePill"),
+      detailMetrics: document.querySelector("#detailMetrics"),
+      decisionNotes: document.querySelector("#decisionNotes"),
+      articleList: document.querySelector("#articleList"),
+      newsForPill: document.querySelector("#newsForPill"),
+      heatGrid: document.querySelector("#heatGrid"),
+      watchTable: document.querySelector("#watchTable"),
+      radarCanvas: document.querySelector("#radarCanvas")
+    };
+
+    function clamp(value, min = 0, max = 100) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function symbols() {
+      return [...new Set(els.symbolsInput.value
+        .split(/[\s,]+/)
+        .map(item => item.trim().toUpperCase())
+        .filter(Boolean))];
+    }
+
+    function profile(symbol) {
+      return companyProfiles[symbol] || {
+        name: symbol,
+        sector: "Custom watchlist",
+        themes: ["market"],
+        quality: 55,
+        volatility: 60
+      };
+    }
+
+    function weights() {
+      const raw = {};
+      document.querySelectorAll(".weightInput").forEach(input => {
+        raw[input.dataset.key] = Number(input.value);
+        document.querySelector(`#${input.dataset.key}Weight`).textContent = input.value;
+      });
+      const total = Object.values(raw).reduce((sum, value) => sum + value, 0) || 1;
+      document.querySelector("#weightTotal").textContent = total;
+      return Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, value / total]));
+    }
+
+    function sentimentFromText(text) {
+      const clean = String(text || "").toLowerCase();
+      let score = 0;
+      positiveWords.forEach(word => {
+        if (clean.includes(word)) score += 1;
+      });
+      negativeWords.forEach(word => {
+        if (clean.includes(word)) score -= 1;
+      });
+      return clamp(50 + score * 13);
+    }
+
+    function detectTheme(text, fallback = "market") {
+      const lower = String(text || "").toLowerCase();
+      const hit = macroThemes.find(theme => theme.query.toLowerCase().split(/\s+or\s+|\s+/).some(part => {
+        const token = part.replaceAll('"', "").trim();
+        return token.length > 3 && lower.includes(token);
+      }));
+      return hit ? hit.id : fallback;
+    }
+
+    function actionFor(score, riskScore, confidence) {
+      if (score >= 78 && riskScore >= 48 && confidence >= 45) return "Strong Watch";
+      if (score >= 68) return "Accumulate";
+      if (score >= 56) return "Hold";
+      if (score >= 45) return "Wait";
+      return "Avoid";
+    }
+
+    function confidenceFor(articleCount, hasQuote, eventScore) {
+      return clamp(28 + Math.min(articleCount, 6) * 8 + (hasQuote ? 14 : 0) + (eventScore > 70 ? 8 : 0));
+    }
+
+    function invalidationFor(item) {
+      if (item.eventScore > 72 && item.sentimentScore < 50) return "Catalyst is negative or disputed";
+      if (item.momentumScore < 42) return "Price fails to confirm the event";
+      if (item.riskScore < 40) return "Volatility exceeds your risk setting";
+      if (item.confidence < 45) return "Need stronger source confirmation";
+      return "Theme fades or earnings contradict thesis";
+    }
+
+    function thesisFor(item) {
+      const direction = item.sentimentScore >= 58 ? "positive" : item.sentimentScore <= 42 ? "negative" : "mixed";
+      const quote = item.quote ? ` Price momentum is ${item.quote.changePct >= 0 ? "confirming" : "not confirming"} the news.` : " Price data is not connected yet.";
+      return `${item.symbol} ranks ${item.action.toLowerCase()} because ${item.primaryThemeLabel.toLowerCase()} coverage is ${direction}, relevance is ${item.eventScore}/100, and quality fit is ${item.qualityScore}/100.${quote}`;
+    }
+
+    function scoreStocks() {
+      const w = weights();
+      const riskPref = Number(els.riskInput.value);
+      const horizon = els.horizonInput.value;
+      const list = symbols();
+      const themeHeatById = Object.fromEntries(state.themeHeat.map(theme => [theme.id, theme]));
+
+      state.ranked = list.map(symbol => {
+        const info = profile(symbol);
+        const relatedArticles = state.articles.filter(article => article.symbol === symbol || info.themes.includes(article.theme));
+        const directArticles = state.articles.filter(article => article.symbol === symbol);
+        const themeHits = info.themes.map(theme => themeHeatById[theme]?.score || 0);
+        const themeBase = themeHits.length ? Math.max(...themeHits) : 35;
+        const eventScore = clamp(themeBase * .55 + Math.min(relatedArticles.length, 8) * 7 + directArticles.length * 6);
+        const sentimentScore = relatedArticles.length
+          ? Math.round(relatedArticles.reduce((sum, article) => sum + article.sentiment, 0) / relatedArticles.length)
+          : 50;
+        const quote = state.quotes[symbol] || null;
+        const momentumScore = quote ? clamp(50 + quote.changePct * 10) : 50;
+        const qualityScore = info.quality;
+        const volatilityFit = clamp(100 - Math.abs(info.volatility - riskPref * 9) * 1.2);
+        const horizonAdjustment = horizon === "swing" ? momentumScore * .08 : horizon === "compounder" ? qualityScore * .08 : 4;
+        const riskScore = clamp(volatilityFit + horizonAdjustment);
+        const overall = Math.round(
+          eventScore * w.event +
+          sentimentScore * w.sentiment +
+          momentumScore * w.momentum +
+          qualityScore * w.quality +
+          riskScore * w.risk
+        );
+        const primaryTheme = info.themes
+          .map(theme => themeHeatById[theme] || { id: theme, label: theme, score: 0 })
+          .sort((a, b) => b.score - a.score)[0] || { id: "market", label: "Market", score: 0 };
+        const confidence = confidenceFor(relatedArticles.length, Boolean(quote), eventScore);
+        const item = {
+          symbol,
+          name: info.name,
+          sector: info.sector,
+          themes: info.themes,
+          quote,
+          relatedArticles,
+          eventScore: Math.round(eventScore),
+          sentimentScore,
+          momentumScore: Math.round(momentumScore),
+          qualityScore,
+          riskScore: Math.round(riskScore),
+          score: overall,
+          confidence,
+          primaryTheme: primaryTheme.id,
+          primaryThemeLabel: primaryTheme.label
+        };
+        item.action = actionFor(item.score, item.riskScore, item.confidence);
+        item.invalidation = invalidationFor(item);
+        item.thesis = thesisFor(item);
+        return item;
+      });
+
+      sortRanked();
+      if (!state.selected || !state.ranked.some(item => item.symbol === state.selected)) {
+        state.selected = state.ranked[0]?.symbol || null;
+      }
+    }
+
+    function sortRanked() {
+      const field = state.view === "events" ? "eventScore" : state.view === "momentum" ? "momentumScore" : state.view === "risk" ? "riskScore" : "score";
+      state.ranked.sort((a, b) => b[field] - a[field]);
+    }
+
+    function gdeltUrl(query, max = 20) {
+      const params = new URLSearchParams({
+        query,
+        mode: "artlist",
+        format: "json",
+        maxrecords: String(max),
+        timespan: "7d",
+        sort: "datedesc"
+      });
+      return `https://api.gdeltproject.org/api/v2/doc/doc?${params.toString()}`;
+    }
+
+    async function fetchJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }
+
+    function normalizeGdeltArticle(raw, symbol, fallbackTheme) {
+      const title = raw.title || "Untitled article";
+      const theme = detectTheme(`${title} ${raw.domain || ""}`, fallbackTheme);
+      return {
+        symbol,
+        title,
+        source: raw.domain || raw.sourceCountry || "GDELT",
+        url: raw.url || "#",
+        published: raw.seendate || raw.datetime || "Recent",
+        theme,
+        sentiment: sentimentFromText(title),
+        tone: (sentimentFromText(title) - 50) / 50
+      };
+    }
+
+    async function loadGdelt(symbolList) {
+      const articles = [];
+      const heat = [];
+      const profileQueries = symbolList.slice(0, 12).map(async symbol => {
+        const info = profile(symbol);
+        const query = `"${info.name}" OR ${symbol}`;
+        try {
+          const data = await fetchJson(gdeltUrl(query, 12));
+          const items = Array.isArray(data.articles) ? data.articles : [];
+          items.forEach(item => articles.push(normalizeGdeltArticle(item, symbol, info.themes[0])));
+        } catch (error) {
+          console.warn(`GDELT failed for ${symbol}`, error);
+        }
+      });
+
+      const themeQueries = macroThemes.map(async theme => {
+        try {
+          const data = await fetchJson(gdeltUrl(`(${theme.query})`, 18));
+          const items = Array.isArray(data.articles) ? data.articles : [];
+          const avgSentiment = items.length
+            ? items.reduce((sum, item) => sum + sentimentFromText(item.title), 0) / items.length
+            : 50;
+          heat.push({
+            id: theme.id,
+            label: theme.label,
+            count: items.length,
+            sentiment: Math.round(avgSentiment),
+            score: clamp(Math.round(items.length * 5 + avgSentiment * .6)),
+            boosts: theme.boosts
+          });
+          items.slice(0, 4).forEach(item => {
+            articles.push(normalizeGdeltArticle(item, theme.boosts[0], theme.id));
+          });
+        } catch (error) {
+          console.warn(`GDELT theme failed for ${theme.id}`, error);
+          heat.push({ id: theme.id, label: theme.label, count: 0, sentiment: 50, score: 25, boosts: theme.boosts });
+        }
+      });
+
+      await Promise.all([...profileQueries, ...themeQueries]);
+      return { articles, heat };
+    }
+
+    function dateDaysAgo(days) {
+      const date = new Date();
+      date.setDate(date.getDate() - days);
+      return date.toISOString().slice(0, 10);
+    }
+
+    async function loadFinnhub(symbolList, token) {
+      const quotes = {};
+      const articles = [];
+      if (!token) return { quotes, articles };
+
+      await Promise.all(symbolList.slice(0, 20).map(async symbol => {
+        try {
+          const quote = await fetchJson(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(token)}`);
+          if (typeof quote.c === "number" && quote.c > 0) {
+            quotes[symbol] = {
+              price: quote.c,
+              changePct: typeof quote.dp === "number" ? quote.dp : 0
+            };
+          }
+        } catch (error) {
+          console.warn(`Finnhub quote failed for ${symbol}`, error);
+        }
+
+        try {
+          const from = dateDaysAgo(7);
+          const to = dateDaysAgo(0);
+          const url = `https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(symbol)}&from=${from}&to=${to}&token=${encodeURIComponent(token)}`;
+          const items = await fetchJson(url);
+          if (Array.isArray(items)) {
+            items.slice(0, 8).forEach(item => {
+              const title = item.headline || "Company news";
+              articles.push({
+                symbol,
+                title,
+                source: item.source || "Finnhub",
+                url: item.url || "#",
+                published: item.datetime ? new Date(item.datetime * 1000).toLocaleString() : "Recent",
+                theme: detectTheme(`${title} ${item.summary || ""}`, profile(symbol).themes[0]),
+                sentiment: sentimentFromText(`${title} ${item.summary || ""}`),
+                tone: (sentimentFromText(`${title} ${item.summary || ""}`) - 50) / 50
+              });
+            });
+          }
+        } catch (error) {
+          console.warn(`Finnhub news failed for ${symbol}`, error);
+        }
+      }));
+
+      return { quotes, articles };
+    }
+
+    function loadDemo() {
+      state.articles = demoArticles.map(article => ({
+        ...article,
+        sentiment: Math.round(50 + article.tone * 50)
+      }));
+      state.quotes = { ...demoQuotes };
+      state.themeHeat = macroThemes.map(theme => {
+        const articles = state.articles.filter(article => article.theme === theme.id);
+        const sentiment = articles.length ? Math.round(articles.reduce((sum, item) => sum + item.sentiment, 0) / articles.length) : 50;
+        return {
+          ...theme,
+          count: articles.length,
+          sentiment,
+          score: clamp(35 + articles.length * 16 + (sentiment - 50) * .5)
+        };
+      });
+      state.lastRun = new Date();
+      els.modePill.textContent = "Demo";
+      els.freshnessPill.textContent = "Demo loaded";
+      els.statusText.textContent = "Demo catalysts loaded. Add your symbols, then connect live data when ready.";
+      scoreStocks();
+      render();
+    }
+
+    async function refreshLive() {
+      const source = els.sourceInput.value;
+      if (source === "demo") {
+        loadDemo();
+        return;
+      }
+
+      const list = symbols();
+      const token = els.finnhubKeyInput.value.trim();
+      els.modePill.textContent = token && source === "hybrid" ? "Hybrid" : "GDELT";
+      els.freshnessPill.textContent = "Fetching";
+      els.statusText.textContent = "Scanning current affairs and company catalysts...";
+
+      try {
+        const gdeltPromise = loadGdelt(list);
+        const finnhubPromise = source === "hybrid" ? loadFinnhub(list, token) : Promise.resolve({ quotes: {}, articles: [] });
+        const [gdelt, finnhub] = await Promise.all([gdeltPromise, finnhubPromise]);
+        state.articles = [...gdelt.articles, ...finnhub.articles];
+        state.themeHeat = gdelt.heat.length ? gdelt.heat : macroThemes.map(theme => ({ ...theme, count: 0, sentiment: 50, score: 25 }));
+        state.quotes = Object.keys(finnhub.quotes).length ? finnhub.quotes : {};
+        state.lastRun = new Date();
+        els.freshnessPill.textContent = "Live";
+        els.statusText.textContent = `Scanned ${state.articles.length} articles across ${list.length} symbols at ${state.lastRun.toLocaleTimeString()}.`;
+        scoreStocks();
+        render();
+      } catch (error) {
+        els.freshnessPill.textContent = "Fallback";
+        els.statusText.textContent = `Live fetch failed: ${error.message}. Demo data is still available.`;
+      }
+    }
+
+    function selectedItem() {
+      return state.ranked.find(item => item.symbol === state.selected) || state.ranked[0] || null;
+    }
+
+    function renderCards() {
+      els.stockCards.innerHTML = state.ranked.map(item => {
+        const score = state.view === "events" ? item.eventScore : state.view === "momentum" ? item.momentumScore : state.view === "risk" ? item.riskScore : item.score;
+        const pillClass = item.action === "Avoid" ? "red" : item.action === "Wait" ? "amber" : item.action === "Strong Watch" ? "" : "blue";
+        const priceText = item.quote ? `$${item.quote.price.toFixed(2)}` : "No quote";
+        const moveText = item.quote ? `${item.quote.changePct >= 0 ? "+" : ""}${item.quote.changePct.toFixed(2)}%` : "Connect key";
+        return `
+          <article class="stock-card ${item.symbol === state.selected ? "selected" : ""}" data-symbol="${item.symbol}">
+            <div class="card-top">
+              <div>
+                <div class="ticker">${item.symbol}</div>
+                <div class="company">${item.name} | ${item.sector}</div>
+              </div>
+              <span class="pill ${pillClass}">${item.action}</span>
+            </div>
+            <div>
+              <div class="scorebar"><span style="--w:${score}%"></span></div>
+              <div class="article-meta">
+                <span>Score ${score}</span>
+                <span>${priceText}</span>
+                <span class="${item.quote && item.quote.changePct < 0 ? "down" : "up"}">${moveText}</span>
+              </div>
+            </div>
+            <div class="reason-list">
+              <span>${item.thesis}</span>
+              <span>Invalidation: ${item.invalidation}</span>
+            </div>
+            <div class="tag-row">
+              <span class="pill">${item.primaryThemeLabel}</span>
+              <span class="pill blue">${item.confidence}% confidence</span>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      document.querySelectorAll(".stock-card").forEach(card => {
+        card.addEventListener("click", () => {
+          state.selected = card.dataset.symbol;
+          render();
+        });
+      });
+    }
+
+    function renderOverview() {
+      const top = state.ranked[0];
+      if (!top) {
+        els.topName.textContent = "No stock selected";
+        els.topThesis.textContent = "Run the radar to see the strongest catalyst-backed opportunity in your watchlist.";
+        els.topRing.style.setProperty("--score", 0);
+        els.topRing.querySelector("span").textContent = "0";
+        return;
+      }
+      els.topName.textContent = `${top.symbol} - ${top.name}`;
+      els.topThesis.textContent = top.thesis;
+      els.topRing.style.setProperty("--score", top.score);
+      els.topRing.querySelector("span").textContent = top.score;
+      els.rankedCount.textContent = state.ranked.length;
+      els.articleCount.textContent = state.articles.length;
+      const hot = [...state.themeHeat].sort((a, b) => b.score - a.score)[0];
+      els.hotTheme.textContent = hot ? hot.label.split(" ")[0] : "None";
+      const avgSentiment = state.articles.length
+        ? Math.round(state.articles.reduce((sum, article) => sum + article.sentiment, 0) / state.articles.length)
+        : 50;
+      els.marketPosture.textContent = avgSentiment >= 58 ? "Constructive" : avgSentiment <= 42 ? "Defensive" : "Neutral";
+    }
+
+    function metric(label, value, color) {
+      return `
+        <div class="metric">
+          <span>${label}</span>
+          <span class="track"><span style="--w:${clamp(value)}%;--c:${color}"></span></span>
+          <strong>${Math.round(value)}</strong>
+        </div>
+      `;
+    }
+
+    function renderDetail() {
+      const item = selectedItem();
+      if (!item) {
+        els.detailTitle.textContent = "Signal Detail";
+        els.detailMetrics.innerHTML = "";
+        els.decisionNotes.innerHTML = "";
+        els.articleList.innerHTML = "";
+        return;
+      }
+      els.detailTitle.textContent = `${item.symbol} Signal Detail`;
+      els.actionPill.textContent = item.action;
+      els.actionPill.className = `pill ${item.action === "Avoid" ? "red" : item.action === "Wait" ? "amber" : ""}`;
+      els.confidencePill.textContent = `${item.confidence}% confidence`;
+      els.newsForPill.textContent = item.symbol;
+      els.detailMetrics.innerHTML = [
+        metric("Overall", item.score, "var(--green)"),
+        metric("Event relevance", item.eventScore, "var(--blue)"),
+        metric("News sentiment", item.sentimentScore, item.sentimentScore >= 50 ? "var(--green-2)" : "var(--red)"),
+        metric("Momentum", item.momentumScore, "var(--violet)"),
+        metric("Quality", item.qualityScore, "var(--green)"),
+        metric("Risk fit", item.riskScore, item.riskScore >= 50 ? "var(--amber)" : "var(--red)")
+      ].join("");
+
+      const positionSize = item.riskScore >= 70 ? "normal starter size" : item.riskScore >= 48 ? "half starter size" : "small research-only size";
+      els.decisionNotes.innerHTML = [
+        `<span><strong>Thesis:</strong> ${item.thesis}</span>`,
+        `<span><strong>Position idea:</strong> ${positionSize}; scale only if price confirms the catalyst after your own review.</span>`,
+        `<span><strong>Invalidation:</strong> ${item.invalidation}.</span>`,
+        `<span><strong>Research checklist:</strong> latest earnings, valuation versus growth, debt/liquidity, options-implied volatility, and major upcoming dates.</span>`
+      ].join("");
+
+      const relevant = item.relatedArticles.length ? item.relatedArticles : state.articles.slice(0, 8);
+      els.articleList.innerHTML = relevant.slice(0, 14).map(article => `
+        <article class="article">
+          <a href="${article.url}" target="_blank" rel="noopener noreferrer">${article.title}</a>
+          <div class="article-meta">
+            <span>${article.source}</span>
+            <span>${article.published}</span>
+            <span>${article.theme}</span>
+            <span>sentiment ${article.sentiment}</span>
+          </div>
+        </article>
+      `).join("") || `<p class="status">No related articles yet. Refresh live data or load demo data.</p>`;
+    }
+
+    function renderHeat() {
+      els.heatGrid.innerHTML = [...state.themeHeat].sort((a, b) => b.score - a.score).map(theme => {
+        const sentimentClass = theme.sentiment < 45 ? "red" : theme.sentiment < 55 ? "amber" : "";
+        return `
+          <article class="heat">
+            <div class="section-title">
+              <h3>${theme.label}</h3>
+              <span class="pill ${sentimentClass}">${theme.sentiment}</span>
+            </div>
+            <strong>${theme.score}</strong>
+            <div class="scorebar"><span style="--w:${theme.score}%"></span></div>
+            <div class="status">${theme.count} recent articles | ${theme.boosts.slice(0, 4).join(", ")}</div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderTable() {
+      els.watchTable.innerHTML = state.ranked.map(item => {
+        const day = item.quote ? item.quote.changePct : 0;
+        return `
+          <tr>
+            <td><strong>${item.symbol}</strong></td>
+            <td>${item.action}</td>
+            <td>${item.score}</td>
+            <td>${item.eventScore}</td>
+            <td>${item.sentimentScore}</td>
+            <td>${item.momentumScore}</td>
+            <td>${item.riskScore}</td>
+            <td>${item.quote ? `$${item.quote.price.toFixed(2)}` : "-"}</td>
+            <td class="${day < 0 ? "down" : "up"}">${item.quote ? `${day >= 0 ? "+" : ""}${day.toFixed(2)}%` : "-"}</td>
+            <td>${item.invalidation}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function drawChart() {
+      const canvas = els.radarCanvas;
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, rect.width * ratio);
+      canvas.height = Math.max(1, rect.height * ratio);
+      const ctx = canvas.getContext("2d");
+      ctx.scale(ratio, ratio);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      const bg = ctx.createLinearGradient(0, 0, rect.width, rect.height);
+      bg.addColorStop(0, "#16281d");
+      bg.addColorStop(1, "#10202b");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, rect.width, rect.height);
+
+      ctx.strokeStyle = "rgba(255,255,255,.08)";
+      for (let x = 0; x < rect.width; x += 42) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, rect.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < rect.height; y += 42) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(rect.width, y);
+        ctx.stroke();
+      }
+
+      const top = state.ranked.slice(0, 8);
+      const maxBar = Math.max(80, rect.width - 110);
+      top.forEach((item, index) => {
+        const y = 26 + index * 31;
+        const width = Math.max(8, maxBar * item.score / 100);
+        ctx.fillStyle = index === 0 ? "#8ad79c" : "rgba(255,255,255,.58)";
+        ctx.fillRect(28, y, width, 9);
+        ctx.fillStyle = "rgba(255,255,255,.9)";
+        ctx.font = "12px Inter, system-ui, sans-serif";
+        ctx.fillText(`${item.symbol} ${item.score}`, 28, y + 24);
+      });
+
+      const item = selectedItem();
+      if (!item) return;
+      const points = [item.eventScore, item.sentimentScore, item.momentumScore, item.qualityScore, item.riskScore];
+      const labels = ["Event", "Sent", "Mom", "Qual", "Risk"];
+      const cx = rect.width * .73;
+      const cy = rect.height * .56;
+      const radius = Math.min(rect.width, rect.height) * .22;
+      ctx.strokeStyle = "rgba(255,255,255,.18)";
+      ctx.fillStyle = "rgba(138,215,156,.18)";
+      for (let ring = 1; ring <= 4; ring++) {
+        ctx.beginPath();
+        for (let i = 0; i < points.length; i++) {
+          const angle = -Math.PI / 2 + i * Math.PI * 2 / points.length;
+          const r = radius * ring / 4;
+          const x = cx + Math.cos(angle) * r;
+          const y = cy + Math.sin(angle) * r;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      points.forEach((value, i) => {
+        const angle = -Math.PI / 2 + i * Math.PI * 2 / points.length;
+        const r = radius * value / 100;
+        const x = cx + Math.cos(angle) * r;
+        const y = cy + Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#8ad79c";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,.82)";
+      ctx.font = "12px Inter, system-ui, sans-serif";
+      labels.forEach((label, i) => {
+        const angle = -Math.PI / 2 + i * Math.PI * 2 / labels.length;
+        ctx.fillText(label, cx + Math.cos(angle) * (radius + 18) - 14, cy + Math.sin(angle) * (radius + 18));
+      });
+    }
+
+    function render() {
+      els.riskLabel.textContent = els.riskInput.value;
+      scoreStocks();
+      renderOverview();
+      renderCards();
+      renderDetail();
+      renderHeat();
+      renderTable();
+      drawChart();
+    }
+
+    function saveSettings() {
+      const settings = {
+        symbols: els.symbolsInput.value,
+        risk: els.riskInput.value,
+        horizon: els.horizonInput.value,
+        source: els.sourceInput.value,
+        finnhub: els.finnhubKeyInput.value,
+        weights: Object.fromEntries([...document.querySelectorAll(".weightInput")].map(input => [input.dataset.key, input.value]))
+      };
+      localStorage.setItem("eventStockRadarSettings", JSON.stringify(settings));
+      els.statusText.textContent = "Settings saved in this browser.";
+      els.freshnessPill.textContent = "Saved";
+    }
+
+    function loadSettings() {
+      try {
+        const settings = JSON.parse(localStorage.getItem("eventStockRadarSettings") || "null");
+        if (!settings) return;
+        els.symbolsInput.value = settings.symbols || els.symbolsInput.value;
+        els.riskInput.value = settings.risk || els.riskInput.value;
+        els.horizonInput.value = settings.horizon || els.horizonInput.value;
+        els.sourceInput.value = settings.source || els.sourceInput.value;
+        els.finnhubKeyInput.value = settings.finnhub || "";
+        if (settings.weights) {
+          document.querySelectorAll(".weightInput").forEach(input => {
+            if (settings.weights[input.dataset.key]) input.value = settings.weights[input.dataset.key];
+          });
+        }
+      } catch (error) {
+        console.warn("Could not load settings", error);
+      }
+    }
+
+    function addSymbol() {
+      const next = els.addSymbolInput.value.trim().toUpperCase();
+      if (!next) return;
+      const list = symbols();
+      if (!list.includes(next)) list.push(next);
+      els.symbolsInput.value = list.join(", ");
+      els.addSymbolInput.value = "";
+      render();
+    }
+
+    function exportCsv() {
+      const header = ["Symbol", "Name", "Action", "Score", "Event", "Sentiment", "Momentum", "Quality", "Risk", "Price", "Day", "Thesis", "Invalidation"];
+      const rows = state.ranked.map(item => [
+        item.symbol,
+        item.name,
+        item.action,
+        item.score,
+        item.eventScore,
+        item.sentimentScore,
+        item.momentumScore,
+        item.qualityScore,
+        item.riskScore,
+        item.quote ? item.quote.price : "",
+        item.quote ? item.quote.changePct : "",
+        item.thesis,
+        item.invalidation
+      ]);
+      const csv = [header, ...rows]
+        .map(row => row.map(cell => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+        .join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "event-stock-radar.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.querySelector("#demoBtn").addEventListener("click", loadDemo);
+    document.querySelector("#refreshBtn").addEventListener("click", refreshLive);
+    document.querySelector("#saveBtn").addEventListener("click", saveSettings);
+    document.querySelector("#addSymbolBtn").addEventListener("click", addSymbol);
+    document.querySelector("#exportBtn").addEventListener("click", exportCsv);
+    els.addSymbolInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") addSymbol();
+    });
+
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(item => item.classList.remove("active"));
+        tab.classList.add("active");
+        state.view = tab.dataset.view;
+        sortRanked();
+        render();
+      });
+    });
+
+    document.querySelectorAll("input, select, textarea").forEach(input => {
+      input.addEventListener("input", render);
+      input.addEventListener("change", render);
+    });
+
+    window.addEventListener("resize", drawChart);
+
+    loadSettings();
+    loadDemo();
+  </script>
+</body>
+</html>

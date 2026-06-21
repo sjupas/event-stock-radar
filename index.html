@@ -419,36 +419,65 @@
 
     .value-axis {
       position: relative;
-      height: 54px;
+      height: 86px;
       border-radius: var(--radius);
       background: linear-gradient(90deg, #e8f3e8, #f7f1df 55%, #fae7e4);
-      overflow: hidden;
+      overflow: visible;
+      border: 1px solid #e0e7dd;
     }
 
     .value-marker {
       position: absolute;
-      top: 6px;
-      bottom: 6px;
-      width: 3px;
+      top: 27px;
+      bottom: 20px;
+      width: 4px;
       border-radius: 999px;
       background: var(--ink);
       left: var(--x);
+      transform: translateX(-50%);
     }
 
-    .value-marker:after {
+    .value-marker:before {
       content: attr(data-label);
       position: absolute;
-      top: 100%;
-      transform: translateX(-40%);
+      bottom: calc(100% + 7px);
+      left: 50%;
+      transform: translateX(-50%);
       color: var(--ink);
       font-size: 11px;
       font-weight: 850;
       white-space: nowrap;
-      margin-top: 3px;
+      background: rgba(255,255,255,.82);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 6px;
+    }
+
+    .value-marker:after {
+      content: attr(data-price);
+      position: absolute;
+      top: calc(100% + 5px);
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+      white-space: nowrap;
     }
 
     .value-marker.fair {
       background: var(--green);
+    }
+
+    .value-marker.buy {
+      background: var(--blue);
+    }
+
+    .valuation-explainer {
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.4;
+      font-weight: 750;
     }
 
     .dashboard-side {
@@ -2259,9 +2288,12 @@
       if (!item) return;
       const raw = state.fundamentals[item.symbol] || demoFundamentals[item.symbol] || {};
       const custom = state.customIntrinsic[item.symbol];
-      const fairValue = custom?.fairValue || item.valuation.analystTarget || null;
-      const buyBelow = custom?.buyBelow || null;
       const price = item.quote?.price || demoQuotes[item.symbol]?.price || null;
+      const impliedFair = price && Number.isFinite(item.valueGap) && item.valueGap !== 100
+        ? price / (1 + item.valueGap / 100)
+        : null;
+      const fairValue = custom?.fairValue || item.valuation.analystTarget || impliedFair || null;
+      const buyBelow = custom?.buyBelow || (fairValue ? fairValue * .75 : null);
       const move = item.quote?.changePct;
       const peg = item.valuation.peg || raw.peg || null;
       const pe = item.valuation.pe || raw.pe || null;
@@ -2287,20 +2319,29 @@
       els.dashTheme.textContent = item.primaryThemeLabel;
       els.dashPegLabel.textContent = peg ? `PEG ${peg.toFixed(2)}` : "PEG -";
 
-      const axisMax = Math.max(price || 0, fairValue || 0, buyBelow || 0, 1) * 1.25;
+      const axisMin = Math.max(0, Math.min(price || Infinity, fairValue || Infinity, buyBelow || Infinity) * .78);
+      const axisMax = Math.max(price || 0, fairValue || 0, buyBelow || 0, 1) * 1.12;
+      const axisRange = Math.max(1, axisMax - axisMin);
       const marker = (value, label, cls = "") => {
         if (!value) return "";
-        const x = clamp(value / axisMax * 100, 2, 96);
-        return `<span class="value-marker ${cls}" style="--x:${x}%" data-label="${label}"></span>`;
+        const x = clamp((value - axisMin) / axisRange * 100, 4, 96);
+        return `<span class="value-marker ${cls}" style="--x:${x}%" data-label="${label}" data-price="${formatMoney(value)}"></span>`;
       };
       els.dashValueAxis.innerHTML = [
-        marker(buyBelow, "Buy", "fair"),
+        marker(buyBelow, "Buy below", "buy"),
         marker(fairValue, "Fair", "fair"),
         marker(price, "Price")
       ].join("");
+      const gapAbs = Math.abs(item.valueGap);
+      const gapText = item.valueGap < -1
+        ? `Estimated ${gapAbs}% below fair value.`
+        : item.valueGap > 1
+          ? `Estimated ${gapAbs}% above fair value.`
+          : "Estimated close to fair value.";
       els.dashValueLegend.innerHTML = [
+        `<span class="valuation-explainer">${gapText}</span>`,
         `<span>Price ${price ? formatMoney(price) : "-"}</span>`,
-        `<span>Fair ${fairValue ? formatMoney(fairValue) : "-"}</span>`,
+        `<span>Fair value ${fairValue ? formatMoney(fairValue) : "-"}</span>`,
         `<span>Buy below ${buyBelow ? formatMoney(buyBelow) : "set in calculator"}</span>`
       ].join("");
 

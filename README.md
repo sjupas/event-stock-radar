@@ -12,6 +12,7 @@ Open `index.html` in a browser, load demo data, or enter a Finnhub API key for o
 - Local intelligence log for timestamped recommendations.
 - Validation workflow that compares later prices with the original logged signal.
 - Small personal learning adjustment after at least three validated signals.
+- Knowledge Lab for importing public YouTube video metadata, storing personal notes, and converting lessons into testable strategy rules.
 
 The intelligence log is stored in browser local storage. It is not uploaded to GitHub.
 

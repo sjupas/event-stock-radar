@@ -611,6 +611,29 @@
       gap: 6px;
     }
 
+    .knowledge-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, .8fr);
+      gap: 12px;
+    }
+
+    .knowledge-list {
+      display: grid;
+      gap: 10px;
+      max-height: 430px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .rule-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 11px;
+      display: grid;
+      gap: 8px;
+    }
+
     .notes {
       color: var(--muted);
       line-height: 1.5;
@@ -625,6 +648,7 @@
     @media (max-width: 1220px) {
       .shell,
       .overview,
+      .knowledge-grid,
       .detail-grid {
         grid-template-columns: 1fr;
       }
@@ -744,6 +768,10 @@
                 <span>Finnhub token</span>
                 <input id="finnhubKeyInput" type="password" placeholder="Optional: quote and company news" aria-label="Finnhub token">
               </div>
+              <div class="field">
+                <span>YouTube Data API key</span>
+                <input id="youtubeKeyInput" type="password" placeholder="Optional: import public channel metadata" aria-label="YouTube Data API key">
+              </div>
               <p class="status">Keys are stored in this browser's local storage. Finnhub adds quotes and company-specific news; GDELT provides no-key global current-affairs coverage.</p>
             </div>
           </div>
@@ -795,6 +823,53 @@
                   <span class="pill" id="riskWeight">7</span>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section">
+            <div class="section-title">
+              <h2>Knowledge Lab</h2>
+              <span class="pill violet" id="knowledgePill">0 rules</span>
+            </div>
+            <div class="knowledge-grid">
+              <div class="form-grid">
+                <div class="field">
+                  <span>YouTube channel handle or URL</span>
+                  <input id="channelInput" type="text" value="https://www.youtube.com/@AdamKhoo/videos" aria-label="YouTube channel">
+                </div>
+                <div class="inline-grid">
+                  <button id="importVideosBtn" class="primary">Import Videos</button>
+                  <button id="seedKnowledgeBtn">Seed Ideas</button>
+                </div>
+                <div class="field">
+                  <span>Video notes or lesson</span>
+                  <textarea id="lessonInput" placeholder="Paste your notes from a video. Example: buy fair/undervalued stocks with strong momentum, high quality, positive catalyst, and clear stop-loss."></textarea>
+                </div>
+                <div class="inline-grid">
+                  <button id="buildRuleBtn">Build Rule</button>
+                  <button id="exportKnowledgeBtn">Export</button>
+                </div>
+                <p class="status" id="knowledgeStatus">Import public video metadata, then add your own notes to create testable rules.</p>
+              </div>
+              <div>
+                <div class="section-title">
+                  <h3>Imported Videos</h3>
+                  <span class="pill blue" id="videoCountPill">0 videos</span>
+                </div>
+                <div class="knowledge-list" id="videoList"></div>
+              </div>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-title">
+              <h2>Strategy Rules</h2>
+              <button id="clearKnowledgeBtn" class="warning">Clear Knowledge</button>
+            </div>
+            <div class="knowledge-grid">
+              <div class="knowledge-list" id="ruleList"></div>
+              <div class="knowledge-list" id="ruleMatches"></div>
             </div>
           </div>
         </section>
@@ -1051,7 +1126,11 @@
       selected: null,
       view: "overall",
       lastRun: null,
-      log: []
+      log: [],
+      knowledge: {
+        videos: [],
+        rules: []
+      }
     };
 
     const els = {
@@ -1062,6 +1141,9 @@
       horizonInput: document.querySelector("#horizonInput"),
       sourceInput: document.querySelector("#sourceInput"),
       finnhubKeyInput: document.querySelector("#finnhubKeyInput"),
+      youtubeKeyInput: document.querySelector("#youtubeKeyInput"),
+      channelInput: document.querySelector("#channelInput"),
+      lessonInput: document.querySelector("#lessonInput"),
       modePill: document.querySelector("#modePill"),
       statusText: document.querySelector("#statusText"),
       freshnessPill: document.querySelector("#freshnessPill"),
@@ -1089,7 +1171,13 @@
       avgReturn: document.querySelector("#avgReturn"),
       learningSummary: document.querySelector("#learningSummary"),
       learningPill: document.querySelector("#learningPill"),
-      logList: document.querySelector("#logList")
+      logList: document.querySelector("#logList"),
+      knowledgePill: document.querySelector("#knowledgePill"),
+      knowledgeStatus: document.querySelector("#knowledgeStatus"),
+      videoCountPill: document.querySelector("#videoCountPill"),
+      videoList: document.querySelector("#videoList"),
+      ruleList: document.querySelector("#ruleList"),
+      ruleMatches: document.querySelector("#ruleMatches")
     };
 
     function clamp(value, min = 0, max = 100) {
@@ -1242,6 +1330,88 @@
       if (matching.length < 3) return 0;
       const hitRate = matching.filter(signal => signal.validation.hit).length / matching.length;
       return Math.round((hitRate - .5) * 12);
+    }
+
+    function classifyLesson(text) {
+      const lower = String(text || "").toLowerCase();
+      const categories = [];
+      if (/value|undervalued|fair value|intrinsic|p\/e|peg|cash flow|discount/.test(lower)) categories.push("Valuation");
+      if (/momentum|trend|moving average|breakout|relative strength|volume/.test(lower)) categories.push("Momentum");
+      if (/quality|moat|roe|roic|margin|debt|balance sheet|cash/.test(lower)) categories.push("Quality");
+      if (/news|catalyst|earnings|guidance|product|macro|rate|inflation|ai|defense|oil/.test(lower)) categories.push("Catalyst");
+      if (/risk|stop|loss|position|drawdown|volatility|avoid/.test(lower)) categories.push("Risk");
+      if (/option|covered call|cash secured put|premium|iv|implied volatility/.test(lower)) categories.push("Options");
+      return categories.length ? categories : ["General"];
+    }
+
+    function extractHandle(input) {
+      const value = String(input || "").trim();
+      const handle = value.match(/@([A-Za-z0-9._-]+)/);
+      if (handle) return handle[1];
+      return value.replace(/^@/, "").replace(/\/videos\/?$/, "").split("/").filter(Boolean).pop() || value;
+    }
+
+    function ruleFromLesson(text, sourceTitle = "Personal lesson") {
+      const lower = String(text || "").toLowerCase();
+      const categories = classifyLesson(text);
+      const conditions = [];
+      const avoids = [];
+      if (/value|undervalued|fair value|intrinsic|p\/e|peg|cash flow|discount/.test(lower)) conditions.push({ key: "valuationScore", label: "Valuation", op: ">=", value: lower.includes("undervalued") ? 62 : 55 });
+      if (/momentum|trend|moving average|breakout|relative strength|volume/.test(lower)) conditions.push({ key: "momentumScore", label: "Momentum", op: ">=", value: lower.includes("strong") || lower.includes("breakout") ? 60 : 55 });
+      if (/quality|moat|roe|roic|margin|balance sheet|cash/.test(lower)) conditions.push({ key: "qualityScore", label: "Quality", op: ">=", value: 65 });
+      if (/news|catalyst|earnings|guidance|product|macro|rate|inflation|ai|defense|oil/.test(lower)) conditions.push({ key: "eventScore", label: "Catalyst", op: ">=", value: 55 });
+      if (/sentiment|positive news|good news|upgrade/.test(lower)) conditions.push({ key: "sentimentScore", label: "Sentiment", op: ">=", value: 55 });
+      if (/risk|stop|loss|position|drawdown|volatility/.test(lower)) conditions.push({ key: "riskScore", label: "Risk", op: ">=", value: 50 });
+      if (/avoid.*overvalued|not.*overvalued|expensive|valuation risk/.test(lower)) conditions.push({ key: "valuationScore", label: "Avoid expensive", op: ">=", value: 45 });
+      if (/value trap|cheap.*bad|declining/.test(lower)) avoids.push("valueTrap");
+      if (!conditions.length) {
+        conditions.push({ key: "score", label: "Overall", op: ">=", value: 65 });
+      }
+      return {
+        id: String(Date.now()),
+        name: `${categories.slice(0, 2).join(" + ")} Rule`,
+        sourceTitle,
+        note: text.trim(),
+        categories,
+        conditions,
+        avoids,
+        createdAt: new Date().toISOString()
+      };
+    }
+
+    function ruleMatchesItem(rule, item) {
+      const passConditions = rule.conditions.every(condition => {
+        const value = Number(item[condition.key] || 0);
+        return condition.op === ">=" ? value >= condition.value : value <= condition.value;
+      });
+      const passAvoids = !(rule.avoids || []).some(avoid => avoid === "valueTrap" && item.valuation?.valueTrap);
+      return passConditions && passAvoids;
+    }
+
+    function saveKnowledge() {
+      localStorage.setItem("eventStockRadarKnowledge", JSON.stringify(state.knowledge));
+    }
+
+    function loadKnowledge() {
+      try {
+        const saved = JSON.parse(localStorage.getItem("eventStockRadarKnowledge") || "null");
+        if (saved) state.knowledge = { videos: saved.videos || [], rules: saved.rules || [] };
+      } catch (error) {
+        state.knowledge = { videos: [], rules: [] };
+      }
+    }
+
+    function seedKnowledge() {
+      const seeds = [
+        "Buy fair or undervalued businesses only when momentum is positive, business quality is strong, and risk is controlled.",
+        "Avoid value traps: cheap stocks with weak growth, poor quality, or negative catalyst should not be treated as bargains.",
+        "For breakout or trend ideas, require strong momentum, positive catalyst, and position sizing with a clear stop-loss.",
+        "For options income candidates, prefer high quality stocks with fair valuation, controlled volatility, and no major earnings risk."
+      ];
+      seeds.forEach(note => state.knowledge.rules.push(ruleFromLesson(note, "Seed strategy")));
+      saveKnowledge();
+      els.knowledgeStatus.textContent = "Seed strategy rules added. They will match against current ranked stocks.";
+      renderKnowledge();
     }
 
     function invalidationFor(item) {
@@ -1491,6 +1661,55 @@
       }));
 
       return { quotes, fundamentals, articles };
+    }
+
+    async function importYoutubeVideos() {
+      const key = els.youtubeKeyInput.value.trim();
+      const handle = extractHandle(els.channelInput.value);
+      if (!key || !handle) {
+        els.knowledgeStatus.textContent = "Add a YouTube Data API key and channel handle/URL first.";
+        return;
+      }
+      els.knowledgeStatus.textContent = "Resolving YouTube channel...";
+      try {
+        const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails&forHandle=${encodeURIComponent(handle)}&key=${encodeURIComponent(key)}`;
+        let channelData = await fetchJson(channelUrl);
+        if (!channelData.items?.length) {
+          const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(handle)}&maxResults=1&key=${encodeURIComponent(key)}`;
+          const searchData = await fetchJson(searchUrl);
+          const channelId = searchData.items?.[0]?.snippet?.channelId;
+          if (channelId) {
+            channelData = await fetchJson(`https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails&id=${encodeURIComponent(channelId)}&key=${encodeURIComponent(key)}`);
+          }
+        }
+        const channel = channelData.items?.[0];
+        const uploads = channel?.contentDetails?.relatedPlaylists?.uploads;
+        if (!uploads) throw new Error("Could not find uploads playlist");
+        els.knowledgeStatus.textContent = `Importing recent videos from ${channel.snippet.title}...`;
+        const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=25&key=${encodeURIComponent(key)}`;
+        const playlist = await fetchJson(playlistUrl);
+        const videos = (playlist.items || []).map(item => {
+          const text = `${item.snippet.title} ${item.snippet.description || ""}`;
+          return {
+            id: item.contentDetails.videoId,
+            title: item.snippet.title,
+            description: item.snippet.description || "",
+            publishedAt: item.contentDetails.videoPublishedAt || item.snippet.publishedAt,
+            url: `https://www.youtube.com/watch?v=${item.contentDetails.videoId}`,
+            channelTitle: item.snippet.videoOwnerChannelTitle || channel.snippet.title,
+            categories: classifyLesson(text)
+          };
+        });
+        const existing = new Set(state.knowledge.videos.map(video => video.id));
+        videos.forEach(video => {
+          if (!existing.has(video.id)) state.knowledge.videos.push(video);
+        });
+        saveKnowledge();
+        els.knowledgeStatus.textContent = `Imported ${videos.length} recent videos. Click a video to use its title/description as rule context, then add your own notes.`;
+        renderKnowledge();
+      } catch (error) {
+        els.knowledgeStatus.textContent = `YouTube import failed: ${error.message}. You can still paste notes manually.`;
+      }
     }
 
     function loadDemo() {
@@ -1835,6 +2054,109 @@
       }).join("") || `<p class="status">No logged runs yet. Click Log Current Run after a live refresh.</p>`;
     }
 
+    function renderKnowledge() {
+      els.knowledgePill.textContent = `${state.knowledge.rules.length} rules`;
+      els.videoCountPill.textContent = `${state.knowledge.videos.length} videos`;
+      els.videoList.innerHTML = state.knowledge.videos.slice(-30).reverse().map(video => `
+        <article class="mini-item">
+          <div class="card-top">
+            <strong>${video.title}</strong>
+            <button class="use-video" data-id="${video.id}">Use</button>
+          </div>
+          <div class="article-meta">
+            <span>${video.channelTitle}</span>
+            <span>${new Date(video.publishedAt).toLocaleDateString()}</span>
+          </div>
+          <div class="tag-row">
+            ${video.categories.map(category => `<span class="pill blue">${category}</span>`).join("")}
+          </div>
+        </article>
+      `).join("") || `<p class="status">No videos imported yet. Add a YouTube API key and import a channel, or paste notes manually.</p>`;
+
+      document.querySelectorAll(".use-video").forEach(button => {
+        button.addEventListener("click", () => {
+          const video = state.knowledge.videos.find(item => item.id === button.dataset.id);
+          if (!video) return;
+          els.lessonInput.value = `From "${video.title}":\n\nMy lesson/rule: `;
+          els.knowledgeStatus.textContent = "Add your own lesson from the video, then click Build Rule.";
+          els.lessonInput.focus();
+        });
+      });
+
+      els.ruleList.innerHTML = state.knowledge.rules.slice().reverse().map(rule => `
+        <article class="rule-card">
+          <div class="card-top">
+            <div>
+              <h3>${rule.name}</h3>
+              <div class="status">${rule.sourceTitle}</div>
+            </div>
+            <button class="remove-rule warning" data-id="${rule.id}">Remove</button>
+          </div>
+          <div class="tag-row">
+            ${rule.categories.map(category => `<span class="pill">${category}</span>`).join("")}
+          </div>
+          <div class="reason-list">
+            <span>${rule.conditions.map(condition => `${condition.label} ${condition.op} ${condition.value}`).join(", ")}</span>
+            <span>${rule.note}</span>
+          </div>
+        </article>
+      `).join("") || `<p class="status">No rules yet. Use Seed Ideas or build one from your notes.</p>`;
+
+      document.querySelectorAll(".remove-rule").forEach(button => {
+        button.addEventListener("click", () => {
+          state.knowledge.rules = state.knowledge.rules.filter(rule => rule.id !== button.dataset.id);
+          saveKnowledge();
+          render();
+        });
+      });
+
+      const matches = state.knowledge.rules.map(rule => ({
+        rule,
+        matches: state.ranked.filter(item => ruleMatchesItem(rule, item)).slice(0, 5)
+      }));
+      els.ruleMatches.innerHTML = matches.map(({ rule, matches: ruleHits }) => `
+        <article class="rule-card">
+          <div class="card-top">
+            <h3>${rule.name}</h3>
+            <span class="pill ${ruleHits.length ? "" : "amber"}">${ruleHits.length} matches</span>
+          </div>
+          <div class="reason-list">
+            ${ruleHits.length ? ruleHits.map(item => `<span><strong>${item.symbol}</strong> ${item.action}, score ${item.score}, value ${item.valuationScore}, momentum ${item.momentumScore}</span>`).join("") : "<span>No current stocks match this rule.</span>"}
+          </div>
+        </article>
+      `).join("") || `<p class="status">Rule matches will appear here after rules exist.</p>`;
+    }
+
+    function buildRuleFromInput() {
+      const note = els.lessonInput.value.trim();
+      if (!note) {
+        els.knowledgeStatus.textContent = "Paste your video notes or lesson first.";
+        return;
+      }
+      state.knowledge.rules.push(ruleFromLesson(note));
+      els.lessonInput.value = "";
+      saveKnowledge();
+      els.knowledgeStatus.textContent = "Rule built and saved locally. It now matches against your current stock rankings.";
+      render();
+    }
+
+    function exportKnowledge() {
+      const blob = new Blob([JSON.stringify(state.knowledge, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "event-stock-radar-knowledge.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearKnowledge() {
+      if (!confirm("Clear your local Knowledge Lab videos and rules from this browser?")) return;
+      state.knowledge = { videos: [], rules: [] };
+      saveKnowledge();
+      render();
+    }
+
     function drawChart() {
       const canvas = els.radarCanvas;
       const rect = canvas.getBoundingClientRect();
@@ -1930,6 +2252,7 @@
       renderHeat();
       renderTable();
       renderLearning();
+      renderKnowledge();
       drawChart();
     }
 
@@ -1940,6 +2263,8 @@
         horizon: els.horizonInput.value,
         source: els.sourceInput.value,
         finnhub: els.finnhubKeyInput.value,
+        youtube: els.youtubeKeyInput.value,
+        channel: els.channelInput.value,
         weights: Object.fromEntries([...document.querySelectorAll(".weightInput")].map(input => [input.dataset.key, input.value]))
       };
       localStorage.setItem("eventStockRadarSettings", JSON.stringify(settings));
@@ -1956,6 +2281,8 @@
         els.horizonInput.value = settings.horizon || els.horizonInput.value;
         els.sourceInput.value = settings.source || els.sourceInput.value;
         els.finnhubKeyInput.value = settings.finnhub || "";
+        els.youtubeKeyInput.value = settings.youtube || "";
+        els.channelInput.value = settings.channel || els.channelInput.value;
         if (settings.weights) {
           document.querySelectorAll(".weightInput").forEach(input => {
             if (settings.weights[input.dataset.key]) input.value = settings.weights[input.dataset.key];
@@ -2033,6 +2360,11 @@
     document.querySelector("#validateBtn").addEventListener("click", validateLog);
     document.querySelector("#exportLogBtn").addEventListener("click", exportLog);
     document.querySelector("#clearLogBtn").addEventListener("click", clearLog);
+    document.querySelector("#importVideosBtn").addEventListener("click", importYoutubeVideos);
+    document.querySelector("#seedKnowledgeBtn").addEventListener("click", seedKnowledge);
+    document.querySelector("#buildRuleBtn").addEventListener("click", buildRuleFromInput);
+    document.querySelector("#exportKnowledgeBtn").addEventListener("click", exportKnowledge);
+    document.querySelector("#clearKnowledgeBtn").addEventListener("click", clearKnowledge);
     els.addSymbolInput.addEventListener("keydown", event => {
       if (event.key === "Enter") addSymbol();
     });
@@ -2056,6 +2388,7 @@
 
     loadSettings();
     loadLog();
+    loadKnowledge();
     loadDemo();
   </script>
 </body>

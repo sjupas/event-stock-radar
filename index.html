@@ -1542,6 +1542,43 @@
       return hit ? hit.id : fallback;
     }
 
+    function articleText(article) {
+      return `${article.title || ""} ${article.source || ""} ${article.summary || ""}`.toLowerCase();
+    }
+
+    function isBusinessSource(article) {
+      const source = String(article.source || "").toLowerCase();
+      return /reuters|bloomberg|cnbc|marketwatch|barrons|wsj|investing|finance|nasdaq|seekingalpha|fool|benzinga|zacks|yahoo|ft\.com|forbes|businessinsider|morningstar|investor|street|globe|apnews|prnewswire/.test(source);
+    }
+
+    function stockRelevance(article, symbol) {
+      const info = profile(symbol);
+      const text = articleText(article);
+      const companyTokens = info.name.toLowerCase().split(/\s+/).filter(token => token.length > 3);
+      const directHit = text.includes(symbol.toLowerCase()) || companyTokens.some(token => text.includes(token));
+      const themeHit = info.themes.some(theme => text.includes(theme));
+      const businessHit = isBusinessSource(article) || /stock|shares|earnings|revenue|profit|guidance|analyst|market|chip|gpu|datacenter|data center|semiconductor|ai infrastructure|cloud/.test(text);
+      if (directHit && businessHit) return 100;
+      if (directHit) return 80;
+      if (themeHit && businessHit) return 45;
+      return 0;
+    }
+
+    function directArticlesFor(symbol) {
+      return state.articles
+        .map(article => ({ ...article, relevance: stockRelevance(article, symbol) }))
+        .filter(article => article.relevance >= 70)
+        .sort((a, b) => b.relevance - a.relevance);
+    }
+
+    function thematicArticlesFor(symbol) {
+      const info = profile(symbol);
+      return state.articles
+        .map(article => ({ ...article, relevance: stockRelevance(article, symbol) }))
+        .filter(article => article.relevance >= 40 || info.themes.includes(article.theme))
+        .sort((a, b) => b.relevance - a.relevance);
+    }
+
     function actionFor(score, riskScore, confidence) {
       if (score >= 78 && riskScore >= 48 && confidence >= 45) return "Strong Watch";
       if (score >= 68) return "Accumulate";
@@ -1871,8 +1908,8 @@
 
       state.ranked = list.map(symbol => {
         const info = profile(symbol);
-        const relatedArticles = state.articles.filter(article => article.symbol === symbol || info.themes.includes(article.theme));
-        const directArticles = state.articles.filter(article => article.symbol === symbol);
+        const relatedArticles = thematicArticlesFor(symbol);
+        const directArticles = directArticlesFor(symbol);
         const themeHits = info.themes.map(theme => themeHeatById[theme]?.score || 0);
         const themeBase = themeHits.length ? Math.max(...themeHits) : 35;
         const eventScore = clamp(themeBase * .55 + Math.min(relatedArticles.length, 8) * 7 + directArticles.length * 6);
@@ -1945,7 +1982,8 @@
         format: "json",
         maxrecords: String(max),
         timespan: "7d",
-        sort: "datedesc"
+        sort: "datedesc",
+        sourcelang: "english"
       });
       return `https://api.gdeltproject.org/api/v2/doc/doc?${params.toString()}`;
     }
@@ -1976,7 +2014,7 @@
       const heat = [];
       const profileQueries = symbolList.slice(0, 12).map(async symbol => {
         const info = profile(symbol);
-        const query = `"${info.name}" OR ${symbol}`;
+        const query = `("${info.name}" OR ${symbol}) (stock OR shares OR earnings OR revenue OR analyst OR market OR semiconductor OR chip OR AI)`;
         try {
           const data = await fetchJson(gdeltUrl(query, 12));
           const items = Array.isArray(data.articles) ? data.articles : [];
@@ -2450,7 +2488,10 @@
         `<span><strong>Research checklist:</strong> latest earnings, valuation versus growth, debt/liquidity, options-implied volatility, and major upcoming dates.</span>`
       ].join("");
 
-      const relevant = item.relatedArticles.length ? item.relatedArticles : state.articles.slice(0, 8);
+      const directNews = directArticlesFor(item.symbol);
+      const fallbackNews = directNews.length ? [] : thematicArticlesFor(item.symbol).filter(article => article.relevance >= 40).slice(0, 6);
+      const relevant = directNews.length ? directNews : fallbackNews;
+      els.newsForPill.textContent = directNews.length ? item.symbol : `${item.symbol} theme`;
       els.articleList.innerHTML = relevant.slice(0, 14).map(article => `
         <article class="article">
           <a href="${article.url}" target="_blank" rel="noopener noreferrer">${article.title}</a>
@@ -2458,10 +2499,11 @@
             <span>${article.source}</span>
             <span>${article.published}</span>
             <span>${article.theme}</span>
+            <span>relevance ${article.relevance || stockRelevance(article, item.symbol)}</span>
             <span>sentiment ${article.sentiment}</span>
           </div>
         </article>
-      `).join("") || `<p class="status">No related articles yet. Refresh live data or load demo data.</p>`;
+      `).join("") || `<p class="status">No direct company news found yet. Refresh live data, connect Finnhub company news, or broaden your watchlist themes.</p>`;
     }
 
     function renderHeat() {

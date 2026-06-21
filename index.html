@@ -342,6 +342,120 @@
       line-height: 1;
     }
 
+    .stock-dashboard {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(340px, .72fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .dashboard-hero {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, #f6fbf4, #fff);
+      padding: 14px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .dashboard-ticker {
+      font-size: 34px;
+      line-height: 1;
+      font-weight: 950;
+    }
+
+    .dashboard-price {
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 900;
+      text-align: right;
+    }
+
+    .mini-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .mini-stat {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 10px;
+      min-height: 74px;
+      display: grid;
+      align-content: space-between;
+      gap: 8px;
+    }
+
+    .mini-stat small {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .mini-stat strong {
+      font-size: 19px;
+      line-height: 1;
+    }
+
+    .value-lane {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .value-axis {
+      position: relative;
+      height: 54px;
+      border-radius: var(--radius);
+      background: linear-gradient(90deg, #e8f3e8, #f7f1df 55%, #fae7e4);
+      overflow: hidden;
+    }
+
+    .value-marker {
+      position: absolute;
+      top: 6px;
+      bottom: 6px;
+      width: 3px;
+      border-radius: 999px;
+      background: var(--ink);
+      left: var(--x);
+    }
+
+    .value-marker:after {
+      content: attr(data-label);
+      position: absolute;
+      top: 100%;
+      transform: translateX(-40%);
+      color: var(--ink);
+      font-size: 11px;
+      font-weight: 850;
+      white-space: nowrap;
+      margin-top: 3px;
+    }
+
+    .value-marker.fair {
+      background: var(--green);
+    }
+
+    .dashboard-side {
+      display: grid;
+      gap: 10px;
+    }
+
     .chart-panel {
       min-height: 306px;
       background: #14231a;
@@ -653,6 +767,7 @@
     @media (max-width: 1220px) {
       .shell,
       .overview,
+      .stock-dashboard,
       .knowledge-grid,
       .detail-grid {
         grid-template-columns: 1fr;
@@ -688,6 +803,7 @@
       }
 
       .stats,
+      .mini-stats,
       .rank-grid,
       .log-grid,
       .heat-grid {
@@ -891,6 +1007,71 @@
               </div>
             </div>
             <div class="rank-grid" id="stockCards"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section">
+            <div class="section-title">
+              <h2>Stock Intelligence Dashboard</h2>
+              <span class="pill" id="stockDashboardPill">Selected stock</span>
+            </div>
+            <div class="stock-dashboard">
+              <div class="dashboard-hero">
+                <div class="dashboard-header">
+                  <div>
+                    <div class="dashboard-ticker" id="dashTicker">NVDA</div>
+                    <div class="company" id="dashCompany">NVIDIA | Semiconductors</div>
+                  </div>
+                  <div>
+                    <div class="dashboard-price" id="dashPrice">$143.20</div>
+                    <div class="status" id="dashMove">+2.40% today</div>
+                  </div>
+                </div>
+                <div class="mini-stats">
+                  <div class="mini-stat">
+                    <small>Action</small>
+                    <strong id="dashAction">Watch</strong>
+                  </div>
+                  <div class="mini-stat">
+                    <small>Overall</small>
+                    <strong id="dashScore">0</strong>
+                  </div>
+                  <div class="mini-stat">
+                    <small>Valuation</small>
+                    <strong id="dashValuation">Fair</strong>
+                  </div>
+                  <div class="mini-stat">
+                    <small>Confidence</small>
+                    <strong id="dashConfidence">0%</strong>
+                  </div>
+                </div>
+                <div class="value-lane">
+                  <div class="section-title">
+                    <h3>Price vs Fair Value</h3>
+                    <span class="pill blue" id="dashValueGap">0%</span>
+                  </div>
+                  <div class="value-axis" id="dashValueAxis"></div>
+                  <div class="article-meta" id="dashValueLegend"></div>
+                </div>
+              </div>
+              <div class="dashboard-side">
+                <div class="value-lane">
+                  <div class="section-title">
+                    <h3>Fundamentals</h3>
+                    <span class="pill" id="dashPegLabel">PEG</span>
+                  </div>
+                  <div class="split-list" id="dashFundamentals"></div>
+                </div>
+                <div class="value-lane">
+                  <div class="section-title">
+                    <h3>Decision Quality</h3>
+                    <span class="pill violet" id="dashTheme">Theme</span>
+                  </div>
+                  <div class="split-list" id="dashScoreBreakdown"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -1217,6 +1398,22 @@
       statusText: document.querySelector("#statusText"),
       freshnessPill: document.querySelector("#freshnessPill"),
       stockCards: document.querySelector("#stockCards"),
+      stockDashboardPill: document.querySelector("#stockDashboardPill"),
+      dashTicker: document.querySelector("#dashTicker"),
+      dashCompany: document.querySelector("#dashCompany"),
+      dashPrice: document.querySelector("#dashPrice"),
+      dashMove: document.querySelector("#dashMove"),
+      dashAction: document.querySelector("#dashAction"),
+      dashScore: document.querySelector("#dashScore"),
+      dashValuation: document.querySelector("#dashValuation"),
+      dashConfidence: document.querySelector("#dashConfidence"),
+      dashValueGap: document.querySelector("#dashValueGap"),
+      dashValueAxis: document.querySelector("#dashValueAxis"),
+      dashValueLegend: document.querySelector("#dashValueLegend"),
+      dashPegLabel: document.querySelector("#dashPegLabel"),
+      dashFundamentals: document.querySelector("#dashFundamentals"),
+      dashTheme: document.querySelector("#dashTheme"),
+      dashScoreBreakdown: document.querySelector("#dashScoreBreakdown"),
       topName: document.querySelector("#topName"),
       topThesis: document.querySelector("#topThesis"),
       topRing: document.querySelector("#topRing"),
@@ -2053,6 +2250,79 @@
       `;
     }
 
+    function compactValue(value, suffix = "") {
+      return value === null || value === undefined || Number.isNaN(Number(value)) ? "-" : `${Number(value).toFixed(1)}${suffix}`;
+    }
+
+    function renderStockDashboard() {
+      const item = selectedItem();
+      if (!item) return;
+      const raw = state.fundamentals[item.symbol] || demoFundamentals[item.symbol] || {};
+      const custom = state.customIntrinsic[item.symbol];
+      const fairValue = custom?.fairValue || item.valuation.analystTarget || null;
+      const buyBelow = custom?.buyBelow || null;
+      const price = item.quote?.price || demoQuotes[item.symbol]?.price || null;
+      const move = item.quote?.changePct;
+      const peg = item.valuation.peg || raw.peg || null;
+      const pe = item.valuation.pe || raw.pe || null;
+      const forwardPe = item.valuation.forwardPe || raw.forwardPe || null;
+      const revenueGrowth = item.valuation.revenueGrowth || raw.revenueGrowth || null;
+      const epsGrowth = item.valuation.epsGrowth || raw.epsGrowth || null;
+      const fcfYield = item.valuation.fcfYield || raw.fcfYield || null;
+      const actionClass = item.action === "Avoid" ? "red" : item.action === "Wait" ? "amber" : item.action === "Strong Watch" ? "" : "blue";
+
+      els.stockDashboardPill.textContent = item.action;
+      els.stockDashboardPill.className = `pill ${actionClass}`;
+      els.dashTicker.textContent = item.symbol;
+      els.dashCompany.textContent = `${item.name} | ${item.sector}`;
+      els.dashPrice.textContent = price ? formatMoney(price) : "No quote";
+      els.dashMove.textContent = move === undefined ? "Connect live quote" : `${move >= 0 ? "+" : ""}${move.toFixed(2)}% today`;
+      els.dashMove.className = `status ${move < 0 ? "down" : "up"}`;
+      els.dashAction.textContent = item.action;
+      els.dashScore.textContent = item.score;
+      els.dashValuation.textContent = item.valuationLabel;
+      els.dashConfidence.textContent = `${item.confidence}%`;
+      els.dashValueGap.textContent = `${item.valueGap}%`;
+      els.dashValueGap.className = `pill ${item.valueGap > 15 ? "red" : item.valueGap > -10 ? "amber" : ""}`;
+      els.dashTheme.textContent = item.primaryThemeLabel;
+      els.dashPegLabel.textContent = peg ? `PEG ${peg.toFixed(2)}` : "PEG -";
+
+      const axisMax = Math.max(price || 0, fairValue || 0, buyBelow || 0, 1) * 1.25;
+      const marker = (value, label, cls = "") => {
+        if (!value) return "";
+        const x = clamp(value / axisMax * 100, 2, 96);
+        return `<span class="value-marker ${cls}" style="--x:${x}%" data-label="${label}"></span>`;
+      };
+      els.dashValueAxis.innerHTML = [
+        marker(buyBelow, "Buy", "fair"),
+        marker(fairValue, "Fair", "fair"),
+        marker(price, "Price")
+      ].join("");
+      els.dashValueLegend.innerHTML = [
+        `<span>Price ${price ? formatMoney(price) : "-"}</span>`,
+        `<span>Fair ${fairValue ? formatMoney(fairValue) : "-"}</span>`,
+        `<span>Buy below ${buyBelow ? formatMoney(buyBelow) : "set in calculator"}</span>`
+      ].join("");
+
+      els.dashFundamentals.innerHTML = [
+        metric("P/E", pe ? clamp(100 - pe) : 50, pe && pe < 25 ? "var(--green)" : "var(--amber)").replace(/<strong>.*?<\/strong>/, `<strong>${compactValue(pe)}</strong>`),
+        metric("Forward P/E", forwardPe ? clamp(100 - forwardPe) : 50, forwardPe && forwardPe < 25 ? "var(--green)" : "var(--amber)").replace(/<strong>.*?<\/strong>/, `<strong>${compactValue(forwardPe)}</strong>`),
+        metric("PEG", peg ? clamp(100 - peg * 35) : 50, peg && peg <= 1.4 ? "var(--green)" : "var(--red)").replace(/<strong>.*?<\/strong>/, `<strong>${compactValue(peg)}</strong>`),
+        metric("Revenue growth", revenueGrowth ? clamp(45 + revenueGrowth) : 50, "var(--blue)").replace(/<strong>.*?<\/strong>/, `<strong>${compactValue(revenueGrowth, "%")}</strong>`),
+        metric("EPS growth", epsGrowth ? clamp(45 + epsGrowth) : 50, epsGrowth && epsGrowth > 0 ? "var(--green)" : "var(--red)").replace(/<strong>.*?<\/strong>/, `<strong>${compactValue(epsGrowth, "%")}</strong>`),
+        metric("FCF yield", fcfYield ? clamp(35 + fcfYield * 8) : 50, "var(--green)").replace(/<strong>.*?<\/strong>/, `<strong>${compactValue(fcfYield, "%")}</strong>`)
+      ].join("");
+
+      els.dashScoreBreakdown.innerHTML = [
+        metric("Overall", item.score, "var(--green)"),
+        metric("Valuation", item.valuationScore, item.valuationScore >= 55 ? "var(--green)" : "var(--red)"),
+        metric("Momentum", item.momentumScore, "var(--violet)"),
+        metric("Catalyst", item.eventScore, "var(--blue)"),
+        metric("Quality", item.qualityScore, "var(--green)"),
+        metric("Risk fit", item.riskScore, item.riskScore >= 50 ? "var(--amber)" : "var(--red)")
+      ].join("");
+    }
+
     function renderDetail() {
       const item = selectedItem();
       if (!item) {
@@ -2450,6 +2720,7 @@
       scoreStocks();
       renderOverview();
       renderCards();
+      renderStockDashboard();
       renderDetail();
       renderHeat();
       renderTable();

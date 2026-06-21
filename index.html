@@ -352,7 +352,7 @@
 
     .tabs {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 4px;
       padding: 4px;
       border: 1px solid var(--line);
@@ -582,6 +582,35 @@
       font-size: 24px;
     }
 
+    .log-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .log-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .mini-list {
+      display: grid;
+      gap: 8px;
+      max-height: 260px;
+      overflow: auto;
+    }
+
+    .mini-item {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 10px;
+      display: grid;
+      gap: 6px;
+    }
+
     .notes {
       color: var(--muted);
       line-height: 1.5;
@@ -605,6 +634,7 @@
       }
 
       .rank-grid,
+      .log-grid,
       .heat-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -630,6 +660,7 @@
 
       .stats,
       .rank-grid,
+      .log-grid,
       .heat-grid {
         grid-template-columns: 1fr;
       }
@@ -725,15 +756,22 @@
               <div class="field">
                 <span>Current affairs</span>
                 <div class="slider-grid">
-                  <input class="weightInput" data-key="event" type="range" min="0" max="50" value="30" aria-label="Current affairs weight">
-                  <span class="pill" id="eventWeight">30</span>
+                  <input class="weightInput" data-key="event" type="range" min="0" max="50" value="24" aria-label="Current affairs weight">
+                  <span class="pill" id="eventWeight">24</span>
+                </div>
+              </div>
+              <div class="field">
+                <span>Valuation</span>
+                <div class="slider-grid">
+                  <input class="weightInput" data-key="valuation" type="range" min="0" max="50" value="20" aria-label="Valuation weight">
+                  <span class="pill" id="valuationWeight">20</span>
                 </div>
               </div>
               <div class="field">
                 <span>News sentiment</span>
                 <div class="slider-grid">
-                  <input class="weightInput" data-key="sentiment" type="range" min="0" max="50" value="22" aria-label="News sentiment weight">
-                  <span class="pill" id="sentimentWeight">22</span>
+                  <input class="weightInput" data-key="sentiment" type="range" min="0" max="50" value="18" aria-label="News sentiment weight">
+                  <span class="pill" id="sentimentWeight">18</span>
                 </div>
               </div>
               <div class="field">
@@ -746,15 +784,15 @@
               <div class="field">
                 <span>Quality fit</span>
                 <div class="slider-grid">
-                  <input class="weightInput" data-key="quality" type="range" min="0" max="50" value="16" aria-label="Quality fit weight">
-                  <span class="pill" id="qualityWeight">16</span>
+                  <input class="weightInput" data-key="quality" type="range" min="0" max="50" value="15" aria-label="Quality fit weight">
+                  <span class="pill" id="qualityWeight">15</span>
                 </div>
               </div>
               <div class="field">
                 <span>Risk control</span>
                 <div class="slider-grid">
-                  <input class="weightInput" data-key="risk" type="range" min="0" max="50" value="12" aria-label="Risk control weight">
-                  <span class="pill" id="riskWeight">12</span>
+                  <input class="weightInput" data-key="risk" type="range" min="0" max="50" value="7" aria-label="Risk control weight">
+                  <span class="pill" id="riskWeight">7</span>
                 </div>
               </div>
             </div>
@@ -813,6 +851,7 @@
               <h2>Ranked Opportunities</h2>
               <div class="tabs">
                 <button class="tab active" data-view="overall">Overall</button>
+                <button class="tab" data-view="valuation">Value</button>
                 <button class="tab" data-view="events">Events</button>
                 <button class="tab" data-view="momentum">Momentum</button>
                 <button class="tab" data-view="risk">Risk</button>
@@ -854,6 +893,46 @@
         <section class="panel">
           <div class="section">
             <div class="section-title">
+              <h2>Intelligence Log</h2>
+              <div class="log-actions">
+                <button id="logRunBtn">Log Current Run</button>
+                <button id="validateBtn">Validate Now</button>
+                <button id="exportLogBtn">Export Log</button>
+                <button id="clearLogBtn" class="warning">Clear Log</button>
+              </div>
+            </div>
+            <div class="log-grid">
+              <div class="stat">
+                <small>Logged ideas</small>
+                <strong id="loggedIdeas">0</strong>
+              </div>
+              <div class="stat">
+                <small>Validated ideas</small>
+                <strong id="validatedIdeas">0</strong>
+              </div>
+              <div class="stat">
+                <small>Hit rate</small>
+                <strong id="hitRate">0%</strong>
+              </div>
+              <div class="stat">
+                <small>Avg return</small>
+                <strong id="avgReturn">0%</strong>
+              </div>
+            </div>
+            <p class="notes" id="learningSummary">The log stores snapshots in this browser only. It validates later by comparing current Finnhub prices against the original signal price.</p>
+          </div>
+          <div class="section">
+            <div class="section-title">
+              <h2>Recent Logged Signals</h2>
+              <span class="pill blue" id="learningPill">Learning off</span>
+            </div>
+            <div class="mini-list" id="logList"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section">
+            <div class="section-title">
               <h2>Current Affairs Heatmap</h2>
               <span class="pill violet">Macro scan</span>
             </div>
@@ -874,6 +953,8 @@
                     <th>Symbol</th>
                     <th>Action</th>
                     <th>Score</th>
+                    <th>Valuation</th>
+                    <th>Value Gap</th>
                     <th>Event</th>
                     <th>Sentiment</th>
                     <th>Momentum</th>
@@ -949,14 +1030,28 @@
       TSLA: { price: 182.7, changePct: -2.1 }
     };
 
+    const demoFundamentals = {
+      NVDA: { pe: 39, forwardPe: 31, peg: 1.35, revenueGrowth: 61, epsGrowth: 44, fcfYield: 1.7, analystTarget: 171 },
+      MSFT: { pe: 35, forwardPe: 29, peg: 2.1, revenueGrowth: 15, epsGrowth: 14, fcfYield: 2.4, analystTarget: 548 },
+      AAPL: { pe: 31, forwardPe: 27, peg: 2.7, revenueGrowth: 4, epsGrowth: 8, fcfYield: 3.1, analystTarget: 228 },
+      AMZN: { pe: 36, forwardPe: 30, peg: 1.6, revenueGrowth: 11, epsGrowth: 28, fcfYield: 2.2, analystTarget: 218 },
+      XOM: { pe: 14, forwardPe: 13, peg: 1.9, revenueGrowth: 3, epsGrowth: 5, fcfYield: 6.5, analystTarget: 128 },
+      LMT: { pe: 21, forwardPe: 18, peg: 2.0, revenueGrowth: 5, epsGrowth: 6, fcfYield: 4.5, analystTarget: 510 },
+      JPM: { pe: 13, forwardPe: 12, peg: 1.4, revenueGrowth: 7, epsGrowth: 9, fcfYield: 5.8, analystTarget: 245 },
+      UNH: { pe: 22, forwardPe: 17, peg: 1.5, revenueGrowth: 8, epsGrowth: 10, fcfYield: 4.2, analystTarget: 590 },
+      TSLA: { pe: 62, forwardPe: 49, peg: 3.2, revenueGrowth: 2, epsGrowth: -12, fcfYield: 0.8, analystTarget: 180 }
+    };
+
     const state = {
       ranked: [],
       articles: [],
       themeHeat: [],
       quotes: {},
+      fundamentals: {},
       selected: null,
       view: "overall",
-      lastRun: null
+      lastRun: null,
+      log: []
     };
 
     const els = {
@@ -987,7 +1082,14 @@
       newsForPill: document.querySelector("#newsForPill"),
       heatGrid: document.querySelector("#heatGrid"),
       watchTable: document.querySelector("#watchTable"),
-      radarCanvas: document.querySelector("#radarCanvas")
+      radarCanvas: document.querySelector("#radarCanvas"),
+      loggedIdeas: document.querySelector("#loggedIdeas"),
+      validatedIdeas: document.querySelector("#validatedIdeas"),
+      hitRate: document.querySelector("#hitRate"),
+      avgReturn: document.querySelector("#avgReturn"),
+      learningSummary: document.querySelector("#learningSummary"),
+      learningPill: document.querySelector("#learningPill"),
+      logList: document.querySelector("#logList")
     };
 
     function clamp(value, min = 0, max = 100) {
@@ -1055,9 +1157,98 @@
       return clamp(28 + Math.min(articleCount, 6) * 8 + (hasQuote ? 14 : 0) + (eventScore > 70 ? 8 : 0));
     }
 
+    function numberOrNull(value) {
+      const next = Number(value);
+      return Number.isFinite(next) && next !== 0 ? next : null;
+    }
+
+    function valuationLabel(gap) {
+      if (gap <= -30) return "Very Undervalued";
+      if (gap <= -10) return "Undervalued";
+      if (gap < 10) return "Fair";
+      if (gap < 30) return "Overvalued";
+      return "Very Overvalued";
+    }
+
+    function valuationFor(symbol, quote) {
+      const info = profile(symbol);
+      const useDemoFallback = els.modePill?.textContent === "Demo";
+      const fallback = useDemoFallback ? (demoFundamentals[symbol] || {}) : {};
+      const raw = state.fundamentals[symbol] || fallback;
+      const price = quote?.price || (useDemoFallback ? demoQuotes[symbol]?.price : null) || null;
+      const target = numberOrNull(raw.analystTarget);
+      const pe = numberOrNull(raw.pe);
+      const forwardPe = numberOrNull(raw.forwardPe);
+      const peg = numberOrNull(raw.peg);
+      const revenueGrowth = numberOrNull(raw.revenueGrowth);
+      const epsGrowth = numberOrNull(raw.epsGrowth);
+      const fcfYield = numberOrNull(raw.fcfYield);
+      const targetGap = price && target ? (price - target) / target * 100 : null;
+      const growth = Math.max(revenueGrowth || 0, epsGrowth || 0);
+      const peBase = forwardPe || pe;
+      const peScore = peBase ? clamp(100 - (peBase - 12) * 2.1) : 50;
+      const pegScore = peg ? clamp(100 - (peg - .8) * 30) : 50;
+      const growthScore = clamp(45 + growth * 1.2);
+      const fcfScore = fcfYield ? clamp(35 + fcfYield * 8) : 50;
+      const targetScore = targetGap === null ? 50 : clamp(60 - targetGap * 1.15);
+      const valuationScore = Math.round(targetScore * .34 + pegScore * .23 + peScore * .18 + growthScore * .15 + fcfScore * .10);
+      const impliedGap = targetGap === null ? (50 - valuationScore) * .8 : targetGap;
+      const valueTrap = valuationScore >= 62 && (growth < 1 || info.quality < 55);
+      return {
+        pe,
+        forwardPe,
+        peg,
+        revenueGrowth,
+        epsGrowth,
+        fcfYield,
+        analystTarget: target,
+        targetGap,
+        valueGap: Math.round(impliedGap),
+        valuationScore,
+        valuationLabel: valuationLabel(impliedGap),
+        valueTrap
+      };
+    }
+
+    function loadLog() {
+      try {
+        state.log = JSON.parse(localStorage.getItem("eventStockRadarLog") || "[]");
+      } catch (error) {
+        state.log = [];
+      }
+    }
+
+    function saveLog() {
+      localStorage.setItem("eventStockRadarLog", JSON.stringify(state.log.slice(-300)));
+    }
+
+    function logStats() {
+      const validations = state.log.flatMap(entry => entry.signals || []).filter(signal => signal.validation);
+      const hits = validations.filter(signal => signal.validation.hit).length;
+      const avg = validations.length
+        ? validations.reduce((sum, signal) => sum + signal.validation.returnPct, 0) / validations.length
+        : 0;
+      return {
+        total: state.log.reduce((sum, entry) => sum + (entry.signals?.length || 0), 0),
+        validated: validations.length,
+        hitRate: validations.length ? Math.round(hits / validations.length * 100) : 0,
+        avgReturn: avg
+      };
+    }
+
+    function learningAdjustmentFor(item) {
+      const validations = state.log.flatMap(entry => entry.signals || []).filter(signal => signal.validation);
+      const matching = validations.filter(signal => signal.action === item.action || signal.primaryTheme === item.primaryTheme || signal.valuationLabel === item.valuationLabel);
+      if (matching.length < 3) return 0;
+      const hitRate = matching.filter(signal => signal.validation.hit).length / matching.length;
+      return Math.round((hitRate - .5) * 12);
+    }
+
     function invalidationFor(item) {
       if (item.eventScore > 72 && item.sentimentScore < 50) return "Catalyst is negative or disputed";
       if (item.momentumScore < 42) return "Price fails to confirm the event";
+      if (item.valuation?.valueTrap) return "Cheap valuation may be a value trap";
+      if (item.valuationScore < 38) return "Valuation is stretched versus growth";
       if (item.riskScore < 40) return "Volatility exceeds your risk setting";
       if (item.confidence < 45) return "Need stronger source confirmation";
       return "Theme fades or earnings contradict thesis";
@@ -1066,7 +1257,9 @@
     function thesisFor(item) {
       const direction = item.sentimentScore >= 58 ? "positive" : item.sentimentScore <= 42 ? "negative" : "mixed";
       const quote = item.quote ? ` Price momentum is ${item.quote.changePct >= 0 ? "confirming" : "not confirming"} the news.` : " Price data is not connected yet.";
-      return `${item.symbol} ranks ${item.action.toLowerCase()} because ${item.primaryThemeLabel.toLowerCase()} coverage is ${direction}, relevance is ${item.eventScore}/100, and quality fit is ${item.qualityScore}/100.${quote}`;
+      const value = ` Valuation reads ${item.valuationLabel.toLowerCase()} with a ${item.valuationScore}/100 value score.`;
+      const learning = item.learningAdjustment ? ` Personal learning adjustment: ${item.learningAdjustment > 0 ? "+" : ""}${item.learningAdjustment}.` : "";
+      return `${item.symbol} ranks ${item.action.toLowerCase()} because ${item.primaryThemeLabel.toLowerCase()} coverage is ${direction}, relevance is ${item.eventScore}/100, and quality fit is ${item.qualityScore}/100.${value}${quote}${learning}`;
     }
 
     function scoreStocks() {
@@ -1087,13 +1280,15 @@
           ? Math.round(relatedArticles.reduce((sum, article) => sum + article.sentiment, 0) / relatedArticles.length)
           : 50;
         const quote = state.quotes[symbol] || null;
+        const valuation = valuationFor(symbol, quote);
         const momentumScore = quote ? clamp(50 + quote.changePct * 10) : 50;
         const qualityScore = info.quality;
         const volatilityFit = clamp(100 - Math.abs(info.volatility - riskPref * 9) * 1.2);
         const horizonAdjustment = horizon === "swing" ? momentumScore * .08 : horizon === "compounder" ? qualityScore * .08 : 4;
         const riskScore = clamp(volatilityFit + horizonAdjustment);
-        const overall = Math.round(
+        const baseOverall = Math.round(
           eventScore * w.event +
+          valuation.valuationScore * w.valuation +
           sentimentScore * w.sentiment +
           momentumScore * w.momentum +
           qualityScore * w.quality +
@@ -1111,15 +1306,21 @@
           quote,
           relatedArticles,
           eventScore: Math.round(eventScore),
+          valuation,
+          valuationScore: valuation.valuationScore,
+          valuationLabel: valuation.valuationLabel,
+          valueGap: valuation.valueGap,
           sentimentScore,
           momentumScore: Math.round(momentumScore),
           qualityScore,
           riskScore: Math.round(riskScore),
-          score: overall,
+          score: baseOverall,
           confidence,
           primaryTheme: primaryTheme.id,
           primaryThemeLabel: primaryTheme.label
         };
+        item.learningAdjustment = learningAdjustmentFor(item);
+        item.score = clamp(item.score + item.learningAdjustment, 0, 100);
         item.action = actionFor(item.score, item.riskScore, item.confidence);
         item.invalidation = invalidationFor(item);
         item.thesis = thesisFor(item);
@@ -1133,7 +1334,7 @@
     }
 
     function sortRanked() {
-      const field = state.view === "events" ? "eventScore" : state.view === "momentum" ? "momentumScore" : state.view === "risk" ? "riskScore" : "score";
+      const field = state.view === "events" ? "eventScore" : state.view === "valuation" ? "valuationScore" : state.view === "momentum" ? "momentumScore" : state.view === "risk" ? "riskScore" : "score";
       state.ranked.sort((a, b) => b[field] - a[field]);
     }
 
@@ -1221,8 +1422,9 @@
 
     async function loadFinnhub(symbolList, token) {
       const quotes = {};
+      const fundamentals = {};
       const articles = [];
-      if (!token) return { quotes, articles };
+      if (!token) return { quotes, fundamentals, articles };
 
       await Promise.all(symbolList.slice(0, 20).map(async symbol => {
         try {
@@ -1235,6 +1437,32 @@
           }
         } catch (error) {
           console.warn(`Finnhub quote failed for ${symbol}`, error);
+        }
+
+        try {
+          const metric = await fetchJson(`https://finnhub.io/api/v1/stock/metric?symbol=${encodeURIComponent(symbol)}&metric=all&token=${encodeURIComponent(token)}`);
+          const m = metric.metric || {};
+          fundamentals[symbol] = {
+            ...(fundamentals[symbol] || {}),
+            pe: numberOrNull(m.peNormalizedAnnual || m.peTTM || m.peBasicExclExtraTTM),
+            forwardPe: numberOrNull(m.forwardPE),
+            peg: numberOrNull(m.pegRatio),
+            revenueGrowth: numberOrNull(m.revenueGrowthTTMYoy || m.revenueGrowthQuarterlyYoy),
+            epsGrowth: numberOrNull(m.epsGrowthTTMYoy || m.epsGrowthQuarterlyYoy),
+            fcfYield: numberOrNull(m.fcfYieldTTM || m.currentEvFreeCashFlowAnnual)
+          };
+        } catch (error) {
+          console.warn(`Finnhub metrics failed for ${symbol}`, error);
+        }
+
+        try {
+          const target = await fetchJson(`https://finnhub.io/api/v1/stock/price-target?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(token)}`);
+          fundamentals[symbol] = {
+            ...(fundamentals[symbol] || {}),
+            analystTarget: numberOrNull(target.targetMean || target.targetMedian)
+          };
+        } catch (error) {
+          console.warn(`Finnhub target failed for ${symbol}`, error);
         }
 
         try {
@@ -1262,7 +1490,7 @@
         }
       }));
 
-      return { quotes, articles };
+      return { quotes, fundamentals, articles };
     }
 
     function loadDemo() {
@@ -1271,6 +1499,7 @@
         sentiment: Math.round(50 + article.tone * 50)
       }));
       state.quotes = { ...demoQuotes };
+      state.fundamentals = { ...demoFundamentals };
       state.themeHeat = macroThemes.map(theme => {
         const articles = state.articles.filter(article => article.theme === theme.id);
         const sentiment = articles.length ? Math.round(articles.reduce((sum, item) => sum + item.sentiment, 0) / articles.length) : 50;
@@ -1304,11 +1533,12 @@
 
       try {
         const gdeltPromise = loadGdelt(list);
-        const finnhubPromise = source === "hybrid" ? loadFinnhub(list, token) : Promise.resolve({ quotes: {}, articles: [] });
+        const finnhubPromise = source === "hybrid" ? loadFinnhub(list, token) : Promise.resolve({ quotes: {}, fundamentals: {}, articles: [] });
         const [gdelt, finnhub] = await Promise.all([gdeltPromise, finnhubPromise]);
         state.articles = [...gdelt.articles, ...finnhub.articles];
         state.themeHeat = gdelt.heat.length ? gdelt.heat : macroThemes.map(theme => ({ ...theme, count: 0, sentiment: 50, score: 25 }));
         state.quotes = Object.keys(finnhub.quotes).length ? finnhub.quotes : {};
+        state.fundamentals = Object.keys(finnhub.fundamentals).length ? finnhub.fundamentals : {};
         state.lastRun = new Date();
         els.freshnessPill.textContent = "Live";
         els.statusText.textContent = `Scanned ${state.articles.length} articles across ${list.length} symbols at ${state.lastRun.toLocaleTimeString()}.`;
@@ -1330,6 +1560,7 @@
         const pillClass = item.action === "Avoid" ? "red" : item.action === "Wait" ? "amber" : item.action === "Strong Watch" ? "" : "blue";
         const priceText = item.quote ? `$${item.quote.price.toFixed(2)}` : "No quote";
         const moveText = item.quote ? `${item.quote.changePct >= 0 ? "+" : ""}${item.quote.changePct.toFixed(2)}%` : "Connect key";
+        const valueClass = item.valuationScore < 42 ? "red" : item.valuationScore < 58 ? "amber" : "";
         return `
           <article class="stock-card ${item.symbol === state.selected ? "selected" : ""}" data-symbol="${item.symbol}">
             <div class="card-top">
@@ -1353,6 +1584,7 @@
             </div>
             <div class="tag-row">
               <span class="pill">${item.primaryThemeLabel}</span>
+              <span class="pill ${valueClass}">${item.valuationLabel}</span>
               <span class="pill blue">${item.confidence}% confidence</span>
             </div>
           </article>
@@ -1417,6 +1649,7 @@
       els.detailMetrics.innerHTML = [
         metric("Overall", item.score, "var(--green)"),
         metric("Event relevance", item.eventScore, "var(--blue)"),
+        metric("Valuation", item.valuationScore, item.valuationScore >= 55 ? "var(--green)" : "var(--red)"),
         metric("News sentiment", item.sentimentScore, item.sentimentScore >= 50 ? "var(--green-2)" : "var(--red)"),
         metric("Momentum", item.momentumScore, "var(--violet)"),
         metric("Quality", item.qualityScore, "var(--green)"),
@@ -1426,6 +1659,7 @@
       const positionSize = item.riskScore >= 70 ? "normal starter size" : item.riskScore >= 48 ? "half starter size" : "small research-only size";
       els.decisionNotes.innerHTML = [
         `<span><strong>Thesis:</strong> ${item.thesis}</span>`,
+        `<span><strong>Valuation:</strong> ${item.valuationLabel}; target/fair-value gap is about ${item.valueGap}% using available target, P/E, PEG, growth, and cash-flow inputs.</span>`,
         `<span><strong>Position idea:</strong> ${positionSize}; scale only if price confirms the catalyst after your own review.</span>`,
         `<span><strong>Invalidation:</strong> ${item.invalidation}.</span>`,
         `<span><strong>Research checklist:</strong> latest earnings, valuation versus growth, debt/liquidity, options-implied volatility, and major upcoming dates.</span>`
@@ -1470,6 +1704,8 @@
             <td><strong>${item.symbol}</strong></td>
             <td>${item.action}</td>
             <td>${item.score}</td>
+            <td>${item.valuationLabel}</td>
+            <td>${item.valueGap}%</td>
             <td>${item.eventScore}</td>
             <td>${item.sentimentScore}</td>
             <td>${item.momentumScore}</td>
@@ -1480,6 +1716,123 @@
           </tr>
         `;
       }).join("");
+    }
+
+    function signalHit(action, returnPct) {
+      if (action === "Strong Watch" || action === "Accumulate") return returnPct > 0;
+      if (action === "Avoid" || action === "Wait") return returnPct <= 0;
+      return Math.abs(returnPct) <= 2 || returnPct > 0;
+    }
+
+    function logCurrentRun() {
+      if (!state.ranked.length) return;
+      const now = new Date();
+      const entry = {
+        id: String(now.getTime()),
+        createdAt: now.toISOString(),
+        source: els.modePill.textContent,
+        symbols: symbols(),
+        signals: state.ranked.slice(0, 12).map((item, index) => ({
+          rank: index + 1,
+          symbol: item.symbol,
+          name: item.name,
+          action: item.action,
+          score: item.score,
+          confidence: item.confidence,
+          price: item.quote?.price || null,
+          changePct: item.quote?.changePct || null,
+          valuationScore: item.valuationScore,
+          valuationLabel: item.valuationLabel,
+          valueGap: item.valueGap,
+          eventScore: item.eventScore,
+          sentimentScore: item.sentimentScore,
+          momentumScore: item.momentumScore,
+          qualityScore: item.qualityScore,
+          riskScore: item.riskScore,
+          primaryTheme: item.primaryTheme,
+          primaryThemeLabel: item.primaryThemeLabel,
+          thesis: item.thesis,
+          invalidation: item.invalidation,
+          validation: null
+        }))
+      };
+      state.log.push(entry);
+      saveLog();
+      els.statusText.textContent = `Logged ${entry.signals.length} signals at ${now.toLocaleTimeString()}. Validate after fresh price data is available.`;
+      els.freshnessPill.textContent = "Logged";
+      renderLearning();
+    }
+
+    async function validateLog() {
+      const token = els.finnhubKeyInput.value.trim();
+      const openSignals = state.log.flatMap(entry => entry.signals || []).filter(signal => !signal.validation && signal.price);
+      if (!openSignals.length) {
+        els.statusText.textContent = "No unvalidated logged signals with starting prices yet.";
+        renderLearning();
+        return;
+      }
+      els.freshnessPill.textContent = "Validating";
+      els.statusText.textContent = "Fetching latest prices to validate logged recommendations...";
+      let latestQuotes = {};
+      if (token) {
+        const unique = [...new Set(openSignals.map(signal => signal.symbol))];
+        latestQuotes = (await loadFinnhub(unique, token)).quotes;
+      } else {
+        latestQuotes = state.quotes;
+      }
+      const now = new Date();
+      let count = 0;
+      state.log.forEach(entry => {
+        const start = new Date(entry.createdAt);
+        (entry.signals || []).forEach(signal => {
+          if (signal.validation || !signal.price || !latestQuotes[signal.symbol]) return;
+          const currentPrice = latestQuotes[signal.symbol].price;
+          const returnPct = (currentPrice - signal.price) / signal.price * 100;
+          signal.validation = {
+            validatedAt: now.toISOString(),
+            ageDays: Math.max(0, Math.round((now - start) / 86400000)),
+            currentPrice,
+            returnPct: Math.round(returnPct * 100) / 100,
+            hit: signalHit(signal.action, returnPct)
+          };
+          count += 1;
+        });
+      });
+      saveLog();
+      els.statusText.textContent = count ? `Validated ${count} logged signals with latest available prices.` : "Could not validate yet. Add a Finnhub key or refresh live quotes first.";
+      els.freshnessPill.textContent = count ? "Validated" : "Needs quotes";
+      render();
+    }
+
+    function renderLearning() {
+      const stats = logStats();
+      els.loggedIdeas.textContent = stats.total;
+      els.validatedIdeas.textContent = stats.validated;
+      els.hitRate.textContent = `${stats.hitRate}%`;
+      els.avgReturn.textContent = `${stats.avgReturn >= 0 ? "+" : ""}${stats.avgReturn.toFixed(2)}%`;
+      els.avgReturn.className = stats.avgReturn < 0 ? "down" : "up";
+      els.learningPill.textContent = stats.validated >= 3 ? "Learning on" : "Learning off";
+      els.learningSummary.textContent = stats.validated >= 3
+        ? `Personal learning is active. Future scores get small adjustments from patterns that validated well or poorly in your own history. Current validated hit rate is ${stats.hitRate}%.`
+        : "The log stores snapshots in this browser only. After at least 3 validated signals, the model starts applying small personal learning adjustments.";
+      const recent = [...state.log].reverse().slice(0, 8);
+      els.logList.innerHTML = recent.map(entry => {
+        const first = entry.signals?.[0];
+        const validated = (entry.signals || []).filter(signal => signal.validation).length;
+        const avg = validated
+          ? (entry.signals || []).filter(signal => signal.validation).reduce((sum, signal) => sum + signal.validation.returnPct, 0) / validated
+          : 0;
+        return `
+          <article class="mini-item">
+            <div class="card-top">
+              <strong>${new Date(entry.createdAt).toLocaleString()}</strong>
+              <span class="pill ${validated ? "" : "amber"}">${validated}/${entry.signals.length} validated</span>
+            </div>
+            <div class="status">Top call: ${first ? `${first.symbol} - ${first.action} at ${first.price ? `$${first.price.toFixed(2)}` : "no price"}` : "None"}</div>
+            <div class="status ${avg < 0 ? "down" : "up"}">Average validated return: ${avg >= 0 ? "+" : ""}${avg.toFixed(2)}%</div>
+          </article>
+        `;
+      }).join("") || `<p class="status">No logged runs yet. Click Log Current Run after a live refresh.</p>`;
     }
 
     function drawChart() {
@@ -1526,8 +1879,8 @@
 
       const item = selectedItem();
       if (!item) return;
-      const points = [item.eventScore, item.sentimentScore, item.momentumScore, item.qualityScore, item.riskScore];
-      const labels = ["Event", "Sent", "Mom", "Qual", "Risk"];
+      const points = [item.eventScore, item.valuationScore, item.sentimentScore, item.momentumScore, item.qualityScore, item.riskScore];
+      const labels = ["Event", "Value", "Sent", "Mom", "Qual", "Risk"];
       const cx = rect.width * .73;
       const cy = rect.height * .56;
       const radius = Math.min(rect.width, rect.height) * .22;
@@ -1576,6 +1929,7 @@
       renderDetail();
       renderHeat();
       renderTable();
+      renderLearning();
       drawChart();
     }
 
@@ -1623,12 +1977,14 @@
     }
 
     function exportCsv() {
-      const header = ["Symbol", "Name", "Action", "Score", "Event", "Sentiment", "Momentum", "Quality", "Risk", "Price", "Day", "Thesis", "Invalidation"];
+      const header = ["Symbol", "Name", "Action", "Score", "Valuation", "Value Gap", "Event", "Sentiment", "Momentum", "Quality", "Risk", "Price", "Day", "Thesis", "Invalidation"];
       const rows = state.ranked.map(item => [
         item.symbol,
         item.name,
         item.action,
         item.score,
+        item.valuationLabel,
+        item.valueGap,
         item.eventScore,
         item.sentimentScore,
         item.momentumScore,
@@ -1651,11 +2007,32 @@
       URL.revokeObjectURL(url);
     }
 
+    function exportLog() {
+      const blob = new Blob([JSON.stringify(state.log, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "event-stock-radar-intelligence-log.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearLog() {
+      if (!confirm("Clear your local intelligence log from this browser?")) return;
+      state.log = [];
+      saveLog();
+      render();
+    }
+
     document.querySelector("#demoBtn").addEventListener("click", loadDemo);
     document.querySelector("#refreshBtn").addEventListener("click", refreshLive);
     document.querySelector("#saveBtn").addEventListener("click", saveSettings);
     document.querySelector("#addSymbolBtn").addEventListener("click", addSymbol);
     document.querySelector("#exportBtn").addEventListener("click", exportCsv);
+    document.querySelector("#logRunBtn").addEventListener("click", logCurrentRun);
+    document.querySelector("#validateBtn").addEventListener("click", validateLog);
+    document.querySelector("#exportLogBtn").addEventListener("click", exportLog);
+    document.querySelector("#clearLogBtn").addEventListener("click", clearLog);
     els.addSymbolInput.addEventListener("keydown", event => {
       if (event.key === "Enter") addSymbol();
     });
@@ -1678,6 +2055,7 @@
     window.addEventListener("resize", drawChart);
 
     loadSettings();
+    loadLog();
     loadDemo();
   </script>
 </body>

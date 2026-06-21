@@ -6,6 +6,15 @@ A personal event-aware stock radar for watchlists, current-affairs scanning, and
 
 Open `index.html` in a browser, load demo data, or enter a Finnhub API key for optional live quotes and company news.
 
+## Intelligence features
+
+- Valuation score from target upside/downside, P/E, PEG, growth, and cash-flow yield where available.
+- Local intelligence log for timestamped recommendations.
+- Validation workflow that compares later prices with the original logged signal.
+- Small personal learning adjustment after at least three validated signals.
+
+The intelligence log is stored in browser local storage. It is not uploaded to GitHub.
+
 ## GitHub Pages
 
 After pushing this folder to GitHub, enable Pages from the repository settings:

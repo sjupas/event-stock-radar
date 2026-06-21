@@ -78,6 +78,7 @@
     select,
     textarea {
       width: 100%;
+      min-width: 0;
       border: 1px solid var(--line);
       border-radius: var(--radius);
       background: #fff;
@@ -192,16 +193,19 @@
       justify-content: space-between;
       gap: 10px;
       margin-bottom: 12px;
+      flex-wrap: wrap;
     }
 
     .field {
       display: grid;
       gap: 7px;
+      min-width: 0;
       color: var(--muted);
       font-size: 12px;
       font-weight: 750;
       text-transform: uppercase;
       letter-spacing: .06em;
+      overflow-wrap: anywhere;
     }
 
     .form-grid {
@@ -211,7 +215,7 @@
 
     .inline-grid {
       display: grid;
-      grid-template-columns: 1fr 92px;
+      grid-template-columns: minmax(0, 1fr) minmax(92px, auto);
       gap: 8px;
       align-items: end;
     }
@@ -615,6 +619,7 @@
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(320px, .8fr);
       gap: 12px;
+      align-items: start;
     }
 
     .knowledge-list {
@@ -830,53 +835,6 @@
         <section class="panel">
           <div class="section">
             <div class="section-title">
-              <h2>Knowledge Lab</h2>
-              <span class="pill violet" id="knowledgePill">0 rules</span>
-            </div>
-            <div class="knowledge-grid">
-              <div class="form-grid">
-                <div class="field">
-                  <span>YouTube channel handle or URL</span>
-                  <input id="channelInput" type="text" value="https://www.youtube.com/@AdamKhoo/videos" aria-label="YouTube channel">
-                </div>
-                <div class="inline-grid">
-                  <button id="importVideosBtn" class="primary">Import Videos</button>
-                  <button id="seedKnowledgeBtn">Seed Ideas</button>
-                </div>
-                <div class="field">
-                  <span>Video notes or lesson</span>
-                  <textarea id="lessonInput" placeholder="Paste your notes from a video. Example: buy fair/undervalued stocks with strong momentum, high quality, positive catalyst, and clear stop-loss."></textarea>
-                </div>
-                <div class="inline-grid">
-                  <button id="buildRuleBtn">Build Rule</button>
-                  <button id="exportKnowledgeBtn">Export</button>
-                </div>
-                <p class="status" id="knowledgeStatus">Import public video metadata, then add your own notes to create testable rules.</p>
-              </div>
-              <div>
-                <div class="section-title">
-                  <h3>Imported Videos</h3>
-                  <span class="pill blue" id="videoCountPill">0 videos</span>
-                </div>
-                <div class="knowledge-list" id="videoList"></div>
-              </div>
-            </div>
-          </div>
-          <div class="section">
-            <div class="section-title">
-              <h2>Strategy Rules</h2>
-              <button id="clearKnowledgeBtn" class="warning">Clear Knowledge</button>
-            </div>
-            <div class="knowledge-grid">
-              <div class="knowledge-list" id="ruleList"></div>
-              <div class="knowledge-list" id="ruleMatches"></div>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="section">
-            <div class="section-title">
               <h2>Run Status</h2>
               <span class="pill" id="freshnessPill">Ready</span>
             </div>
@@ -933,6 +891,53 @@
               </div>
             </div>
             <div class="rank-grid" id="stockCards"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section">
+            <div class="section-title">
+              <h2>Knowledge Lab</h2>
+              <span class="pill violet" id="knowledgePill">0 rules</span>
+            </div>
+            <div class="knowledge-grid">
+              <div class="form-grid">
+                <div class="field">
+                  <span>YouTube channel handle or URL</span>
+                  <input id="channelInput" type="text" value="https://www.youtube.com/@AdamKhoo/videos" aria-label="YouTube channel">
+                </div>
+                <div class="inline-grid">
+                  <button id="importVideosBtn" class="primary">Import Videos</button>
+                  <button id="seedKnowledgeBtn">Seed Ideas</button>
+                </div>
+                <div class="field">
+                  <span>Video notes or lesson</span>
+                  <textarea id="lessonInput" placeholder="Paste your notes from a video. Example: buy fair/undervalued stocks with strong momentum, high quality, positive catalyst, and clear stop-loss."></textarea>
+                </div>
+                <div class="inline-grid">
+                  <button id="buildRuleBtn">Build Rule</button>
+                  <button id="exportKnowledgeBtn">Export</button>
+                </div>
+                <p class="status" id="knowledgeStatus">Import public video metadata, then add your own notes to create testable rules.</p>
+              </div>
+              <div>
+                <div class="section-title">
+                  <h3>Imported Videos</h3>
+                  <span class="pill blue" id="videoCountPill">0 videos</span>
+                </div>
+                <div class="knowledge-list" id="videoList"></div>
+              </div>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-title">
+              <h2>Strategy Rules</h2>
+              <button id="clearKnowledgeBtn" class="warning">Clear Knowledge</button>
+            </div>
+            <div class="knowledge-grid">
+              <div class="knowledge-list" id="ruleList"></div>
+              <div class="knowledge-list" id="ruleMatches"></div>
+            </div>
           </div>
         </section>
 

@@ -29,6 +29,7 @@
     body {
       margin: 0;
       min-height: 100vh;
+      padding-top: env(safe-area-inset-top, 0);
       background:
         linear-gradient(180deg, rgba(255,255,255,.75), rgba(245,247,244,.96)),
         linear-gradient(90deg, rgba(29,107,69,.06) 1px, transparent 1px),
@@ -107,7 +108,7 @@
     .app {
       width: min(1540px, calc(100% - 32px));
       margin: 0 auto;
-      padding: 22px 0 34px;
+      padding: max(48px, calc(env(safe-area-inset-top, 0px) + 34px)) 0 34px;
     }
 
     header {
@@ -695,6 +696,10 @@
       text-decoration: none;
       font-weight: 800;
       line-height: 1.35;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .article a:hover {
@@ -816,7 +821,7 @@
     @media (max-width: 760px) {
       .app {
         width: min(100% - 20px, 1540px);
-        padding-top: 14px;
+        padding-top: max(64px, calc(env(safe-area-inset-top, 0px) + 42px));
       }
 
       header {
@@ -1551,6 +1556,17 @@
       return /reuters|bloomberg|cnbc|marketwatch|barrons|wsj|investing|finance|nasdaq|seekingalpha|fool|benzinga|zacks|yahoo|ft\.com|forbes|businessinsider|morningstar|investor|street|globe|apnews|prnewswire/.test(source);
     }
 
+    function isMostlyEnglishTitle(title) {
+      const letters = String(title || "").match(/[a-zA-Z\u0400-\u04FF]/g) || [];
+      if (!letters.length) return true;
+      const latin = String(title || "").match(/[a-zA-Z]/g) || [];
+      return latin.length / letters.length >= .78;
+    }
+
+    function isBlockedNewsSource(source) {
+      return /playground\.ru|life\.ru|sud\.ua|trend\.az|yandex|ria\.ru|tass\.com|pravda|rt\.com/i.test(String(source || ""));
+    }
+
     function stockRelevance(article, symbol) {
       const info = profile(symbol);
       const text = articleText(article);
@@ -1564,6 +1580,21 @@
       return 0;
     }
 
+    function articleKey(article) {
+      return `${String(article.url || "").toLowerCase()}|${String(article.title || "").toLowerCase()}`;
+    }
+
+    function safeArticleUrl(article) {
+      const raw = String(article.url || "").trim();
+      if (/^https?:\/\//i.test(raw)) return raw;
+      const query = [article.title, article.source].filter(Boolean).join(" ");
+      return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    }
+
+    function newsScope(article, symbol) {
+      return stockRelevance(article, symbol) >= 70 ? "Company" : "Theme context";
+    }
+
     function directArticlesFor(symbol) {
       return state.articles
         .map(article => ({ ...article, relevance: stockRelevance(article, symbol) }))
@@ -1575,7 +1606,7 @@
       const info = profile(symbol);
       return state.articles
         .map(article => ({ ...article, relevance: stockRelevance(article, symbol) }))
-        .filter(article => article.relevance >= 40 || info.themes.includes(article.theme))
+        .filter(article => article.relevance >= 35 || info.themes.includes(article.theme))
         .sort((a, b) => b.relevance - a.relevance);
     }
 
@@ -1996,11 +2027,13 @@
 
     function normalizeGdeltArticle(raw, symbol, fallbackTheme) {
       const title = raw.title || "Untitled article";
+      const source = raw.domain || raw.sourceCountry || "GDELT";
+      if (!isMostlyEnglishTitle(title) || isBlockedNewsSource(source)) return null;
       const theme = detectTheme(`${title} ${raw.domain || ""}`, fallbackTheme);
       return {
         symbol,
         title,
-        source: raw.domain || raw.sourceCountry || "GDELT",
+        source,
         url: raw.url || "#",
         published: raw.seendate || raw.datetime || "Recent",
         theme,
@@ -2016,9 +2049,12 @@
         const info = profile(symbol);
         const query = `("${info.name}" OR ${symbol}) (stock OR shares OR earnings OR revenue OR analyst OR market OR semiconductor OR chip OR AI)`;
         try {
-          const data = await fetchJson(gdeltUrl(query, 12));
+          const data = await fetchJson(gdeltUrl(query, 20));
           const items = Array.isArray(data.articles) ? data.articles : [];
-          items.forEach(item => articles.push(normalizeGdeltArticle(item, symbol, info.themes[0])));
+          items.forEach(item => {
+            const article = normalizeGdeltArticle(item, symbol, info.themes[0]);
+            if (article) articles.push(article);
+          });
         } catch (error) {
           console.warn(`GDELT failed for ${symbol}`, error);
         }
@@ -2040,7 +2076,8 @@
             boosts: theme.boosts
           });
           items.slice(0, 4).forEach(item => {
-            articles.push(normalizeGdeltArticle(item, theme.boosts[0], theme.id));
+            const article = normalizeGdeltArticle(item, theme.boosts[0], theme.id);
+            if (article) articles.push(article);
           });
         } catch (error) {
           console.warn(`GDELT theme failed for ${theme.id}`, error);
@@ -2115,7 +2152,7 @@
                 symbol,
                 title,
                 source: item.source || "Finnhub",
-                url: item.url || "#",
+                url: item.url || "",
                 published: item.datetime ? new Date(item.datetime * 1000).toLocaleString() : "Recent",
                 theme: detectTheme(`${title} ${item.summary || ""}`, profile(symbol).themes[0]),
                 sentiment: sentimentFromText(`${title} ${item.summary || ""}`),
@@ -2488,22 +2525,29 @@
         `<span><strong>Research checklist:</strong> latest earnings, valuation versus growth, debt/liquidity, options-implied volatility, and major upcoming dates.</span>`
       ].join("");
 
-      const directNews = directArticlesFor(item.symbol);
-      const fallbackNews = directNews.length ? [] : thematicArticlesFor(item.symbol).filter(article => article.relevance >= 40).slice(0, 6);
-      const relevant = directNews.length ? directNews : fallbackNews;
-      els.newsForPill.textContent = directNews.length ? item.symbol : `${item.symbol} theme`;
+      const directNews = directArticlesFor(item.symbol).slice(0, 8);
+      const directKeys = new Set(directNews.map(articleKey));
+      const contextNews = thematicArticlesFor(item.symbol)
+        .filter(article => !directKeys.has(articleKey(article)))
+        .slice(0, directNews.length ? 8 : 12);
+      const relevant = [...directNews, ...contextNews].slice(0, 16);
+      els.newsForPill.textContent = directNews.length ? `${item.symbol} + context` : `${item.symbol} theme`;
       els.articleList.innerHTML = relevant.slice(0, 14).map(article => `
         <article class="article">
-          <a href="${article.url}" target="_blank" rel="noopener noreferrer">${article.title}</a>
+          <a href="${safeArticleUrl(article)}" target="_blank" rel="noopener noreferrer">
+            ${article.title}
+            <span class="pill blue">Open</span>
+          </a>
           <div class="article-meta">
             <span>${article.source}</span>
             <span>${article.published}</span>
+            <span>${newsScope(article, item.symbol)}</span>
             <span>${article.theme}</span>
             <span>relevance ${article.relevance || stockRelevance(article, item.symbol)}</span>
             <span>sentiment ${article.sentiment}</span>
           </div>
         </article>
-      `).join("") || `<p class="status">No direct company news found yet. Refresh live data, connect Finnhub company news, or broaden your watchlist themes.</p>`;
+      `).join("") || `<p class="status">No relevant company or theme news found yet. Refresh live data, connect Finnhub company news, or broaden your watchlist themes.</p>`;
     }
 
     function renderHeat() {

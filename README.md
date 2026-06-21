@@ -16,7 +16,7 @@ Open `index.html` in a browser, load demo data, or enter a Finnhub API key for o
 - Validation workflow that compares later prices with the original logged signal.
 - Small personal learning adjustment after at least three validated signals.
 - Knowledge Lab for importing public YouTube video metadata, storing personal notes, and converting lessons into testable strategy rules.
-- Stricter relevant-news filtering that prioritizes direct company/ticker/business-source articles over generic theme matches.
+- Relevant-news panel that shows direct company/ticker articles first, then labeled sector/theme context with safe link fallbacks.
 
 The intelligence log is stored in browser local storage. It is not uploaded to GitHub.
 

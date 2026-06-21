@@ -897,6 +897,69 @@
         <section class="panel">
           <div class="section">
             <div class="section-title">
+              <h2>Intrinsic Value Calculator</h2>
+              <span class="pill blue" id="intrinsicPill">Standard DCF</span>
+            </div>
+            <div class="knowledge-grid">
+              <div class="form-grid">
+                <div class="inline-grid">
+                  <div class="field">
+                    <span>Symbol</span>
+                    <input id="intrinsicSymbolInput" type="text" value="NVDA" aria-label="Intrinsic value symbol">
+                  </div>
+                  <button id="loadSelectedIntrinsicBtn">Use Selected</button>
+                </div>
+                <div class="inline-grid">
+                  <div class="field">
+                    <span>Current price</span>
+                    <input id="intrinsicPriceInput" type="number" min="0" step="0.01" value="143.20" aria-label="Current price">
+                  </div>
+                  <div class="field">
+                    <span>EPS or FCF/share</span>
+                    <input id="intrinsicCashInput" type="number" min="0" step="0.01" value="3.70" aria-label="EPS or free cash flow per share">
+                  </div>
+                </div>
+                <div class="inline-grid">
+                  <div class="field">
+                    <span>Growth years 1-5 (%)</span>
+                    <input id="intrinsicGrowthInput" type="number" step="0.1" value="18" aria-label="Growth rate">
+                  </div>
+                  <div class="field">
+                    <span>Terminal growth (%)</span>
+                    <input id="intrinsicTerminalInput" type="number" step="0.1" value="3" aria-label="Terminal growth rate">
+                  </div>
+                </div>
+                <div class="inline-grid">
+                  <div class="field">
+                    <span>Discount rate (%)</span>
+                    <input id="intrinsicDiscountInput" type="number" step="0.1" value="10" aria-label="Discount rate">
+                  </div>
+                  <div class="field">
+                    <span>Margin of safety (%)</span>
+                    <input id="intrinsicSafetyInput" type="number" min="0" max="80" step="1" value="25" aria-label="Margin of safety">
+                  </div>
+                </div>
+                <div class="inline-grid">
+                  <button id="calculateIntrinsicBtn" class="primary">Calculate</button>
+                  <button id="applyIntrinsicBtn">Use In Ranking</button>
+                </div>
+                <p class="status">This is a transparent estimate. Change assumptions aggressively and watch how fair value moves.</p>
+              </div>
+              <div class="rule-card">
+                <div class="section-title">
+                  <h3 id="intrinsicResultTitle">NVDA estimate</h3>
+                  <span class="pill" id="intrinsicLabel">Ready</span>
+                </div>
+                <div class="split-list" id="intrinsicMetrics"></div>
+                <div class="reason-list" id="intrinsicNotes"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section">
+            <div class="section-title">
               <h2>Knowledge Lab</h2>
               <span class="pill violet" id="knowledgePill">0 rules</span>
             </div>
@@ -1128,6 +1191,7 @@
       themeHeat: [],
       quotes: {},
       fundamentals: {},
+      customIntrinsic: {},
       selected: null,
       view: "overall",
       lastRun: null,
@@ -1182,7 +1246,19 @@
       videoCountPill: document.querySelector("#videoCountPill"),
       videoList: document.querySelector("#videoList"),
       ruleList: document.querySelector("#ruleList"),
-      ruleMatches: document.querySelector("#ruleMatches")
+      ruleMatches: document.querySelector("#ruleMatches"),
+      intrinsicSymbolInput: document.querySelector("#intrinsicSymbolInput"),
+      intrinsicPriceInput: document.querySelector("#intrinsicPriceInput"),
+      intrinsicCashInput: document.querySelector("#intrinsicCashInput"),
+      intrinsicGrowthInput: document.querySelector("#intrinsicGrowthInput"),
+      intrinsicTerminalInput: document.querySelector("#intrinsicTerminalInput"),
+      intrinsicDiscountInput: document.querySelector("#intrinsicDiscountInput"),
+      intrinsicSafetyInput: document.querySelector("#intrinsicSafetyInput"),
+      intrinsicPill: document.querySelector("#intrinsicPill"),
+      intrinsicResultTitle: document.querySelector("#intrinsicResultTitle"),
+      intrinsicLabel: document.querySelector("#intrinsicLabel"),
+      intrinsicMetrics: document.querySelector("#intrinsicMetrics"),
+      intrinsicNotes: document.querySelector("#intrinsicNotes")
     };
 
     function clamp(value, min = 0, max = 100) {
@@ -1263,13 +1339,134 @@
       return "Very Overvalued";
     }
 
+    function formatMoney(value) {
+      return Number.isFinite(value) ? `$${value.toFixed(2)}` : "-";
+    }
+
+    function calculateIntrinsicValue() {
+      const symbol = els.intrinsicSymbolInput.value.trim().toUpperCase() || "STOCK";
+      const price = Number(els.intrinsicPriceInput.value);
+      const baseCash = Number(els.intrinsicCashInput.value);
+      const growth = Number(els.intrinsicGrowthInput.value) / 100;
+      const terminalGrowth = Number(els.intrinsicTerminalInput.value) / 100;
+      const discount = Number(els.intrinsicDiscountInput.value) / 100;
+      const safety = Number(els.intrinsicSafetyInput.value) / 100;
+      if (!price || !baseCash || discount <= terminalGrowth) {
+        return { symbol, error: "Enter price, EPS/FCF per share, and keep discount rate above terminal growth." };
+      }
+      let presentValue = 0;
+      let cash = baseCash;
+      const yearly = [];
+      for (let year = 1; year <= 5; year += 1) {
+        cash *= (1 + growth);
+        const discounted = cash / Math.pow(1 + discount, year);
+        yearly.push({ year, cash, discounted });
+        presentValue += discounted;
+      }
+      const terminalCash = cash * (1 + terminalGrowth);
+      const terminalValue = terminalCash / (discount - terminalGrowth);
+      const terminalPresent = terminalValue / Math.pow(1 + discount, 5);
+      const fairValue = presentValue + terminalPresent;
+      const buyBelow = fairValue * (1 - safety);
+      const gap = price && fairValue ? (price - fairValue) / fairValue * 100 : 0;
+      return {
+        symbol,
+        price,
+        baseCash,
+        growth,
+        terminalGrowth,
+        discount,
+        safety,
+        fairValue,
+        buyBelow,
+        gap,
+        label: valuationLabel(gap),
+        yearly
+      };
+    }
+
+    function renderIntrinsic(result = calculateIntrinsicValue()) {
+      if (result.error) {
+        els.intrinsicResultTitle.textContent = `${result.symbol} estimate`;
+        els.intrinsicLabel.textContent = "Check inputs";
+        els.intrinsicLabel.className = "pill amber";
+        els.intrinsicMetrics.innerHTML = "";
+        els.intrinsicNotes.innerHTML = `<span>${result.error}</span>`;
+        return;
+      }
+      const labelClass = result.gap > 15 ? "red" : result.gap > -10 ? "amber" : "";
+      els.intrinsicResultTitle.textContent = `${result.symbol} intrinsic value`;
+      els.intrinsicLabel.textContent = result.label;
+      els.intrinsicLabel.className = `pill ${labelClass}`;
+      els.intrinsicPill.textContent = `${Math.round(result.gap)}% gap`;
+      els.intrinsicMetrics.innerHTML = [
+        metric("Fair value", Math.min(100, result.fairValue / Math.max(result.price, 1) * 50), "var(--green)"),
+        metric("Buy below", Math.min(100, result.buyBelow / Math.max(result.price, 1) * 50), "var(--blue)"),
+        metric("Safety", result.safety * 100, "var(--amber)"),
+        metric("Discount gap", clamp(50 - result.gap), result.gap <= 0 ? "var(--green)" : "var(--red)")
+      ].join("");
+      els.intrinsicNotes.innerHTML = [
+        `<span><strong>Current price:</strong> ${formatMoney(result.price)}</span>`,
+        `<span><strong>Estimated fair value:</strong> ${formatMoney(result.fairValue)}</span>`,
+        `<span><strong>Buy-below price:</strong> ${formatMoney(result.buyBelow)} after ${Math.round(result.safety * 100)}% margin of safety.</span>`,
+        `<span><strong>Assumptions:</strong> ${(result.growth * 100).toFixed(1)}% growth for 5 years, ${(result.terminalGrowth * 100).toFixed(1)}% terminal growth, ${(result.discount * 100).toFixed(1)}% discount rate.</span>`
+      ].join("");
+    }
+
+    function loadSelectedIntoIntrinsic() {
+      const item = selectedItem();
+      if (!item) return;
+      const fundamentals = state.fundamentals[item.symbol] || demoFundamentals[item.symbol] || {};
+      els.intrinsicSymbolInput.value = item.symbol;
+      els.intrinsicPriceInput.value = item.quote?.price || demoQuotes[item.symbol]?.price || "";
+      const epsProxy = fundamentals.forwardPe && item.quote?.price ? item.quote.price / fundamentals.forwardPe : fundamentals.pe && item.quote?.price ? item.quote.price / fundamentals.pe : "";
+      els.intrinsicCashInput.value = epsProxy ? epsProxy.toFixed(2) : els.intrinsicCashInput.value;
+      const growth = Math.max(fundamentals.revenueGrowth || 0, fundamentals.epsGrowth || 0);
+      if (growth) els.intrinsicGrowthInput.value = Math.min(35, Math.max(2, growth)).toFixed(1);
+      renderIntrinsic();
+    }
+
+    function applyIntrinsicToRanking() {
+      const result = calculateIntrinsicValue();
+      if (result.error) {
+        renderIntrinsic(result);
+        return;
+      }
+      state.customIntrinsic[result.symbol] = {
+        fairValue: Math.round(result.fairValue * 100) / 100,
+        buyBelow: Math.round(result.buyBelow * 100) / 100,
+        gap: Math.round(result.gap * 100) / 100,
+        assumptions: {
+          baseCash: result.baseCash,
+          growth: result.growth,
+          terminalGrowth: result.terminalGrowth,
+          discount: result.discount,
+          safety: result.safety
+        },
+        updatedAt: new Date().toISOString()
+      };
+      localStorage.setItem("eventStockRadarIntrinsic", JSON.stringify(state.customIntrinsic));
+      els.statusText.textContent = `${result.symbol} intrinsic value saved and used in valuation ranking.`;
+      els.freshnessPill.textContent = "Intrinsic saved";
+      render();
+    }
+
+    function loadIntrinsicOverrides() {
+      try {
+        state.customIntrinsic = JSON.parse(localStorage.getItem("eventStockRadarIntrinsic") || "{}");
+      } catch (error) {
+        state.customIntrinsic = {};
+      }
+    }
+
     function valuationFor(symbol, quote) {
       const info = profile(symbol);
       const useDemoFallback = els.modePill?.textContent === "Demo";
       const fallback = useDemoFallback ? (demoFundamentals[symbol] || {}) : {};
       const raw = state.fundamentals[symbol] || fallback;
       const price = quote?.price || (useDemoFallback ? demoQuotes[symbol]?.price : null) || null;
-      const target = numberOrNull(raw.analystTarget);
+      const custom = state.customIntrinsic[symbol];
+      const target = numberOrNull(custom?.fairValue || raw.analystTarget);
       const pe = numberOrNull(raw.pe);
       const forwardPe = numberOrNull(raw.forwardPe);
       const peg = numberOrNull(raw.peg);
@@ -2258,6 +2455,7 @@
       renderTable();
       renderLearning();
       renderKnowledge();
+      renderIntrinsic();
       drawChart();
     }
 
@@ -2370,6 +2568,9 @@
     document.querySelector("#buildRuleBtn").addEventListener("click", buildRuleFromInput);
     document.querySelector("#exportKnowledgeBtn").addEventListener("click", exportKnowledge);
     document.querySelector("#clearKnowledgeBtn").addEventListener("click", clearKnowledge);
+    document.querySelector("#calculateIntrinsicBtn").addEventListener("click", () => renderIntrinsic());
+    document.querySelector("#loadSelectedIntrinsicBtn").addEventListener("click", loadSelectedIntoIntrinsic);
+    document.querySelector("#applyIntrinsicBtn").addEventListener("click", applyIntrinsicToRanking);
     els.addSymbolInput.addEventListener("keydown", event => {
       if (event.key === "Enter") addSymbol();
     });
@@ -2394,6 +2595,7 @@
     loadSettings();
     loadLog();
     loadKnowledge();
+    loadIntrinsicOverrides();
     loadDemo();
   </script>
 </body>

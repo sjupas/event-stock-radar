@@ -9,6 +9,7 @@ Open `index.html` in a browser, load demo data, or enter a Finnhub API key for o
 ## Intelligence features
 
 - Valuation score from target upside/downside, P/E, PEG, growth, and cash-flow yield where available.
+- Intrinsic Value Calculator using user assumptions for cash flow/EPS growth, discount rate, terminal growth, and margin of safety.
 - Local intelligence log for timestamped recommendations.
 - Validation workflow that compares later prices with the original logged signal.
 - Small personal learning adjustment after at least three validated signals.

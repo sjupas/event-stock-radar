@@ -1082,6 +1082,7 @@
                   </div>
                   <div class="value-axis" id="dashValueAxis"></div>
                   <div class="article-meta" id="dashValueLegend"></div>
+                  <div class="rule-card" id="dashDecisionNote"></div>
                 </div>
               </div>
               <div class="dashboard-side">
@@ -1439,6 +1440,7 @@
       dashValueGap: document.querySelector("#dashValueGap"),
       dashValueAxis: document.querySelector("#dashValueAxis"),
       dashValueLegend: document.querySelector("#dashValueLegend"),
+      dashDecisionNote: document.querySelector("#dashDecisionNote"),
       dashPegLabel: document.querySelector("#dashPegLabel"),
       dashFundamentals: document.querySelector("#dashFundamentals"),
       dashTheme: document.querySelector("#dashTheme"),
@@ -2283,6 +2285,46 @@
       return value === null || value === undefined || Number.isNaN(Number(value)) ? "-" : `${Number(value).toFixed(1)}${suffix}`;
     }
 
+    function finalDecisionFor(item, hasCustomIntrinsic) {
+      const intrinsicUndervalued = item.valueGap <= -10;
+      const intrinsicOvervalued = item.valueGap >= 10;
+      const goodSetup = item.score >= 68 && item.momentumScore >= 55 && item.eventScore >= 50;
+      const strongQuality = item.qualityScore >= 65;
+      if (intrinsicUndervalued && goodSetup && strongQuality) {
+        return {
+          label: "Buy zone",
+          cls: "",
+          text: "Intrinsic value, quality, and current setup agree. This is the cleanest type of signal, but still size carefully."
+        };
+      }
+      if (intrinsicOvervalued && goodSetup) {
+        return {
+          label: "Valuation conflict",
+          cls: "amber",
+          text: "Ranked Opportunities likes the setup, but intrinsic value says price discipline is weak. Treat as watchlist/wait unless you deliberately accept a growth premium."
+        };
+      }
+      if (intrinsicOvervalued) {
+        return {
+          label: "Wait",
+          cls: "red",
+          text: "Intrinsic value says the stock is expensive. For wealth-building, do not ignore this unless assumptions are clearly too conservative."
+        };
+      }
+      if (!hasCustomIntrinsic && item.valuationScore >= 55 && goodSetup) {
+        return {
+          label: "Watch zone",
+          cls: "blue",
+          text: "The opportunity model is constructive, but add your own intrinsic value estimate before treating it as a buy."
+        };
+      }
+      return {
+        label: "Research zone",
+        cls: "amber",
+        text: "Signals are mixed. Use intrinsic value for price discipline and Ranked Opportunities for timing/setup quality."
+      };
+    }
+
     function renderStockDashboard() {
       const item = selectedItem();
       if (!item) return;
@@ -2302,9 +2344,10 @@
       const epsGrowth = item.valuation.epsGrowth || raw.epsGrowth || null;
       const fcfYield = item.valuation.fcfYield || raw.fcfYield || null;
       const actionClass = item.action === "Avoid" ? "red" : item.action === "Wait" ? "amber" : item.action === "Strong Watch" ? "" : "blue";
+      const finalDecision = finalDecisionFor(item, Boolean(custom));
 
-      els.stockDashboardPill.textContent = item.action;
-      els.stockDashboardPill.className = `pill ${actionClass}`;
+      els.stockDashboardPill.textContent = finalDecision.label;
+      els.stockDashboardPill.className = `pill ${finalDecision.cls}`;
       els.dashTicker.textContent = item.symbol;
       els.dashCompany.textContent = `${item.name} | ${item.sector}`;
       els.dashPrice.textContent = price ? formatMoney(price) : "No quote";
@@ -2344,6 +2387,16 @@
         `<span>Fair value ${fairValue ? formatMoney(fairValue) : "-"}</span>`,
         `<span>Buy below ${buyBelow ? formatMoney(buyBelow) : "set in calculator"}</span>`
       ].join("");
+      els.dashDecisionNote.innerHTML = `
+        <div class="card-top">
+          <h3>Final Decision: ${finalDecision.label}</h3>
+          <span class="pill ${finalDecision.cls}">${custom ? "Your intrinsic value" : "Auto valuation"}</span>
+        </div>
+        <div class="reason-list">
+          <span>${finalDecision.text}</span>
+          <span><strong>Rule:</strong> Intrinsic value answers "is the price attractive"; Ranked Opportunities answers "is the setup interesting now". For actual buys, intrinsic value has priority.</span>
+        </div>
+      `;
 
       els.dashFundamentals.innerHTML = [
         metric("P/E", pe ? clamp(100 - pe) : 50, pe && pe < 25 ? "var(--green)" : "var(--amber)").replace(/<strong>.*?<\/strong>/, `<strong>${compactValue(pe)}</strong>`),

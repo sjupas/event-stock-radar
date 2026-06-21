@@ -11,6 +11,7 @@ Open `index.html` in a browser, load demo data, or enter a Finnhub API key for o
 - Valuation score from target upside/downside, P/E, PEG, growth, and cash-flow yield where available.
 - Intrinsic Value Calculator using user assumptions for cash flow/EPS growth, discount rate, terminal growth, and margin of safety.
 - Per-stock intelligence dashboard with price, action, valuation, fair-value gap, fundamentals, and score breakdown.
+- Final Decision note that explains the difference between intrinsic value price discipline and ranked opportunity setup quality.
 - Local intelligence log for timestamped recommendations.
 - Validation workflow that compares later prices with the original logged signal.
 - Small personal learning adjustment after at least three validated signals.
